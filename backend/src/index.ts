@@ -17,12 +17,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // =============================================
-// 中介層（Middleware）
-// =============================================
+// 簡易請求日誌
+app.use((req, _res, next) => {
+  console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+  next();
+});
 
-// 允許前端（localhost:5173）存取後端
+// 允許前端存取後端（包含 localhost 與 WSL2 區域網路 IP）
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: true,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type'],
 }));

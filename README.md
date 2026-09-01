@@ -138,7 +138,7 @@ npm run dev
 
 - **🖥️ 自建／本地模型**：跑 Ollama／LM Studio，資料不出本機，適合機敏資料。多數情況不用填任何東西。
 - **🟢 外部雲端模型**：貼上雲端服務（例如 Gemini）的 API Key 即可。
-- **➕ 訂閱制 Claude**：吃你本機已登入的 Claude Code 訂閱額度，免 API Key；面板會偵測登入狀態，未登入可一鍵開終端機登入。**注意：這條路徑的資料會送到 Anthropic 雲端，跟外部雲端一樣不算「本機」，機敏資料請改用自建／本地模型。**
+- **➕ 訂閱制 Claude（透過 CLIProxyAPI）**：吃你本機的 Claude 訂閱額度，免 API Key。後端啟動時會自動在背景執行 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)（`http://localhost:8317/v1`）提供 OpenAI 相容 API。初次使用可執行 `npm run cliproxy:login` 完成授權。**注意：這條路徑的資料會送到 Anthropic 雲端，跟外部雲端一樣不算「本機」，機敏資料請改用自建／本地模型。**
 
 設定完可以按「測試連線」實際 ping 一次模型，成功後按「儲存設定」即可（存在 `backend/data/ai-settings.json`，重啟系統仍會保留；還沒設定過時會沿用 `.env` 的 `LOCAL_LLM_API_URL`／`LOCAL_LLM_MODEL`）。
 

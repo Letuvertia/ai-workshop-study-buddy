@@ -96,3 +96,4 @@ frontend/  React+Vite（port 5173）── fetch ──▶ backend/  Express+TS�
 | D-1 | 2026-07-07 | 建立本文件（AGENTS.md，Codex 系模型會自動讀取此檔名）；建立 git 版本控制與 `npm run check` 驗證制度（使用者拍板）。 |
 | D-3 | 2026-07-07 | 新增任務建立後的編輯功能（使用者要求）：任務詳情頁可編輯任務基本資料（新 API `PUT /api/tasks/:id`，白名單欄位）與單則提醒時間（沿用 `PUT /api/tasks/reminders/:id`；改時間時一併把 status 拉回 pending，讓排程器重新發送）。 |
 | D-2 | 2026-07-07 | 新增單一伺服器模式：backend 直接供應 frontend/dist，課堂示範只需開一個伺服器（使用者要求）。前端 API 本來就走相對路徑 `/api`，同源即可運作。同日從 `study-buddy-reminder/.env` 救回 LINE 金鑰重建 `backend/.env`（TOKEN 與 USER_ID 已填，CHANNEL_SECRET 原本就空，webhook 簽章驗證會跳過——單人本機示範可接受，若要補上請至 LINE Developers Console 抄 Channel secret）。 |
+| D-4 | 2026-09-02 | **整合 CLIProxyAPI**：為避免學生端安裝 Claude Code CLI 的終端機相容性地雷，整合 `router-for-me/CLIProxyAPI` 作為本地代理。`npm run dev` 啟動時自動檢查並拉起 CLIProxyAPI（port 8317），後端統一走標準 OpenAI-compatible API（`http://localhost:8317/v1`），免裝 Claude Code CLI。 |

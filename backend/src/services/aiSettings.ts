@@ -16,9 +16,9 @@ const SETTINGS_PATH = path.join(DATA_DIR, 'ai-settings.json');
 export const PRESETS: Record<AiConfig['kind'], AiConfig> = {
   subscription: {
     kind: 'subscription',
-    name: '訂閱制 Claude（本機）',
-    endpoint: 'claude-cli://local',
-    model_name: 'sonnet',
+    name: '訂閱制 Claude（CLIProxyAPI）',
+    endpoint: 'http://localhost:8317/v1',
+    model_name: 'claude-3-7-sonnet',
     api_key: '',
     is_local: false,
   },

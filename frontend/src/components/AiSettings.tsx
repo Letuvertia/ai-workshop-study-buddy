@@ -3,10 +3,8 @@ import {
   getAiSettings,
   saveAiSettings,
   testAiConnection,
-  getClaudeAccount,
-  claudeLogin,
 } from '../api/aiSettings.js';
-import { AiConfig, AiKind, ClaudeAccountStatus, TestConnectionResult } from '../types/index.js';
+import { AiConfig, AiKind, TestConnectionResult } from '../types/index.js';
 import './AiSettings.css';
 
 const KIND_LABEL: Record<AiKind, string> = {
@@ -62,16 +60,17 @@ function Guide({ kind }: { kind: AiKind }) {
   }
   return (
     <>
-      <strong>➕ 訂閱制 Claude（用你的 Claude 訂閱額度，免 API Key、不按量計費）</strong>
+      <strong>➕ 訂閱制 Claude（透過 CLIProxyAPI 本地轉發，免 API Key、吃 Claude 訂閱額度）</strong>
       <ol>
         <li>
-          安裝{' '}
-          <a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer">
-            Claude Code
+          後端已整合{' '}
+          <a href="https://github.com/router-for-me/CLIProxyAPI" target="_blank" rel="noopener noreferrer">
+            CLIProxyAPI
           </a>
-          ，在終端機執行一次 <code>claude</code> 並用訂閱帳號登入（選 Claude account，不是 API）
+          ，啟動後端時會自動於本機 <code>http://localhost:8317/v1</code> 建立標準 OpenAI 相容代理。
         </li>
-        <li>端點已填 <code>claude-cli://local</code>、模型 <code>sonnet</code>（可改 <code>opus</code>，品質高但耗額度）</li>
+        <li>端點已填 <code>http://localhost:8317/v1</code>、模型已預設 <code>claude-3-7-sonnet</code></li>
+        <li>初次使用請在終端機執行 <code>npm run cliproxy:login</code> 登入 Claude 帳號</li>
         <li>API Key 留空，按「儲存設定」，再用「測試連線」確認</li>
       </ol>
       <div className="warn-strong">⚠ 回應由 Anthropic 雲端產生，請勿用於機敏資料。</div>
@@ -113,8 +112,6 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<TestConnectionResult | null>(null);
-  const [account, setAccount] = useState<ClaudeAccountStatus | null>(null);
-  const [loggingIn, setLoggingIn] = useState(false);
 
   useEffect(() => {
     getAiSettings().then((r) => {
@@ -124,22 +121,6 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
   }, []);
 
   const isClaude = form?.kind === 'subscription';
-
-  const detect = () => getClaudeAccount().then(setAccount).catch(() => setAccount({ ok: false, logged_in: false }));
-
-  useEffect(() => {
-    if (isClaude) detect();
-  }, [isClaude]);
-
-  useEffect(() => {
-    if (!loggingIn) return;
-    const t = setInterval(async () => {
-      const a = await getClaudeAccount().catch(() => null);
-      if (a) setAccount(a);
-      if (a?.logged_in) setLoggingIn(false);
-    }, 3000);
-    return () => clearInterval(t);
-  }, [loggingIn]);
 
   if (!form || !presets) {
     return (
@@ -176,11 +157,6 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
     }
   };
 
-  const login = async () => {
-    await claudeLogin().catch(() => {});
-    setLoggingIn(true);
-  };
-
   return (
     <div className="ai-overlay" onClick={() => onClose()}>
       <div className="ai-panel" onClick={(e) => e.stopPropagation()}>
@@ -209,33 +185,9 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
 
         {isClaude && (
           <div className="claude-status">
-            {account == null && <span className="muted">偵測本機 Claude 狀態中…</span>}
-            {account?.ok && account.logged_in && (
-              <span className="ok-text">
-                ✓ 已登入{account.email ? `：${account.email}` : ''}
-                {account.subscription ? `（${account.subscription} 方案）` : ''}，可直接測試。
-              </span>
-            )}
-            {account?.ok && !account.logged_in && (
-              <div>
-                <div className="warn-text">已安裝 Claude Code，但尚未登入。</div>
-                <button className="ai-btn" disabled={loggingIn} onClick={login}>
-                  {loggingIn ? '已開啟登入視窗，完成後自動偵測…' : '🔑 立即登入 Claude'}
-                </button>
-                <button className="ai-btn ghost" onClick={detect}>重新偵測</button>
-              </div>
-            )}
-            {account && !account.ok && (
-              <div>
-                <div className="warn-text">找不到 Claude Code，需先安裝：</div>
-                <ul className="install-list">
-                  <li>Mac：終端機執行 <code>curl -fsSL https://claude.ai/install.sh | bash</code></li>
-                  <li>Windows：PowerShell 執行 <code>irm https://claude.ai/install.ps1 | iex</code></li>
-                </ul>
-                <button className="ai-btn ghost" onClick={detect}>裝好了，重新偵測</button>
-                <span className="muted"> 沒有訂閱者可改用「🟢 外部雲端」或「🖥️ 自建本地」。</span>
-              </div>
-            )}
+            <span className="ok-text">
+              ✓ CLIProxyAPI 運行於 <code>http://localhost:8317/v1</code>。初次使用若需登入 Claude 授權，請在終端機執行 <code>npm run cliproxy:login</code>。
+            </span>
           </div>
         )}
 

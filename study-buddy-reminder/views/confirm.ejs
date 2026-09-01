@@ -1,0 +1,258 @@
+<%- include('partials/header', { pageTitle: '確認規劃 — 數位學伴' }) %>
+
+<%
+const TC = {
+  '語言學習': {ic:'ic-red',    pill:'pill-red',    grad:'grad-red',    emoji:'🗣️'},
+  '課程作業': {ic:'ic-blue',   pill:'pill-blue',   grad:'grad-blue',   emoji:'📚'},
+  '程式':     {ic:'ic-green',  pill:'pill-green',  grad:'grad-green',  emoji:'💻'},
+  '研究閱讀': {ic:'ic-purple', pill:'pill-purple', grad:'grad-purple', emoji:'🔬'},
+  '寫作':     {ic:'ic-amber',  pill:'pill-amber',  grad:'grad-amber',  emoji:'✍️'},
+  '簡報':     {ic:'ic-teal',   pill:'pill-teal',   grad:'grad-teal',   emoji:'📊'},
+  '行政':     {ic:'ic-purple', pill:'pill-purple', grad:'grad-purple', emoji:'📋'},
+  '規劃':     {ic:'ic-amber',  pill:'pill-amber',  grad:'grad-amber',  emoji:'🗺️'},
+  '複習':     {ic:'ic-blue',   pill:'pill-blue',   grad:'grad-blue',   emoji:'🔄'},
+  '生活安排': {ic:'ic-green',  pill:'pill-green',  grad:'grad-green',  emoji:'🏠'},
+};
+function tc(type) { return TC[type] || {ic:'ic-gray', pill:'pill-gray', grad:'', emoji:'📌'}; }
+%>
+
+<div class="page-shell" style="max-width:820px;">
+
+  <!-- Page Header -->
+  <div style="margin-bottom:28px;">
+    <a href="/" style="font-size:13px;color:var(--text-secondary);text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-bottom:14px;">
+      ← 返回修改
+    </a>
+    <h1 style="margin:0 0 6px;font-size:24px;font-weight:800;color:var(--text-primary);">確認你的任務規劃</h1>
+    <p style="margin:0;font-size:13px;color:var(--text-muted);">確認以下內容後，按「建立任務」。</p>
+  </div>
+
+  <form action="/confirm/<%= tempId %>" method="POST">
+
+    <!-- Card 1: 任務摘要 -->
+    <div class="card" style="border-left:3px solid #0984e3;margin-bottom:20px;">
+
+      <!-- Icon + Title Row -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+        <div class="icon-circle <%= tc(formData.taskType).ic %>">
+          <%= tc(formData.taskType).emoji %>
+        </div>
+        <div style="font-size:20px;font-weight:800;color:var(--text-primary);line-height:1.3;">
+          <%= plan.taskTitle %>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:18px;">
+        <% if (plan.goal) { %>
+        <div style="grid-column:1/-1;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">目標</div>
+          <div style="font-size:14px;color:var(--text-primary);line-height:1.55;"><%= plan.goal %></div>
+        </div>
+        <% } %>
+        <% if (formData.deadline) { %>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">截止日期</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);"><%= formData.deadline %></div>
+        </div>
+        <% } %>
+        <% if (formData.availableTime) { %>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">可用時間</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);"><%= formData.availableTime %></div>
+        </div>
+        <% } %>
+        <% if (formData.taskType) { %>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">任務類型</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text-primary);"><%= formData.taskType %></div>
+        </div>
+        <% } %>
+      </div>
+
+      <!-- Suggested Tools -->
+      <% if (plan.suggestedTools && plan.suggestedTools.length > 0) { %>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">建議工具</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <% plan.suggestedTools.forEach(function(t){ %>
+            <span class="pill <%= tc(t).pill || 'pill-gray' %>"><%= t %></span>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Hidden Inputs for Steps -->
+      <% if (plan.steps) { plan.steps.forEach(function(step, i){ %>
+        <input type="hidden" name="step_title_<%= i %>" value="<%= step.title %>">
+        <input type="hidden" name="step_desc_<%= i %>" value="<%= step.description %>">
+        <input type="hidden" name="step_min_<%= i %>" value="<%= step.estimatedMinutes %>">
+        <input type="hidden" name="step_criteria_<%= i %>" value="<%= step.completionCriteria %>">
+        <input type="hidden" name="step_guide_<%= i %>" value="<%= step.toolUsageGuide %>">
+      <% }); } %>
+
+    </div>
+
+    <!-- Card 2: 任務步驟 -->
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text-primary);">任務步驟</h2>
+        <% if (plan.steps && plan.steps.length > 0) { %>
+          <span class="badge"><%= plan.steps.length %> 個步驟</span>
+        <% } %>
+      </div>
+
+      <% if (plan.steps && plan.steps.length > 0) { %>
+      <div class="timeline">
+        <% plan.steps.forEach(function(step, i){ %>
+        <div class="timeline-item">
+          <div class="timeline-dot"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
+              <span style="font-weight:700;font-size:14px;color:var(--text-primary);"><%= step.title %></span>
+              <% if (step.estimatedMinutes) { %>
+                <span style="font-size:12px;color:var(--text-muted);">約 <%= step.estimatedMinutes %> 分鐘</span>
+              <% } %>
+            </div>
+            <% if (step.description) { %>
+              <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;line-height:1.55;">
+                <%= step.description %>
+              </div>
+            <% } %>
+            <% if (step.completionCriteria) { %>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+                ✅ <%= step.completionCriteria %>
+              </div>
+            <% } %>
+            <% if (step.toolUsageGuide) { %>
+              <div class="guide-box"><%= step.toolUsageGuide %></div>
+            <% } %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+      <% } else { %>
+      <div class="empty-state">
+        <div class="empty-icon">📝</div>
+        <div class="empty-title">暫無步驟</div>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Card 3: 提醒安排 -->
+    <div class="card" style="margin-bottom:28px;">
+      <div style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text-primary);">提醒安排</h2>
+          <% if (plan.reminders && plan.reminders.length > 0) { %>
+            <span class="badge"><%= plan.reminders.length %> 個提醒</span>
+          <% } %>
+        </div>
+        <p style="margin:0;font-size:13px;color:var(--text-muted);">可修改時間與內容，或取消不需要的提醒</p>
+      </div>
+
+      <% if (!plan.reminders || plan.reminders.length === 0) { %>
+      <div class="empty-state">
+        <div class="empty-icon">🔔</div>
+        <div class="empty-title">沒有安排提醒</div>
+        <div class="empty-desc">可以儲存後再手動新增提醒。</div>
+      </div>
+      <% } else { %>
+        <% plan.reminders.forEach(function(r, i){
+          let rDate = '';
+          try {
+            const d = new Date(r.remindAt);
+            const pad = n => String(n).padStart(2,'0');
+            rDate = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+          } catch(e){}
+        %>
+        <div id="rCard_<%= i %>" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:12px;transition:opacity .2s;">
+
+          <!-- Header Row -->
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;color:var(--text-primary);cursor:pointer;">
+              <input type="checkbox"
+                name="r_enabled_<%= i %>"
+                value="1"
+                checked
+                style="accent-color:#0984e3;width:16px;height:16px;"
+                onchange="toggleRCard(<%= i %>, this.checked)">
+              提醒 <%= i + 1 %>
+            </label>
+            <% if (r.remindAt) { %>
+              <span style="font-size:13px;color:var(--text-secondary);">
+                🕐 <%= new Date(r.remindAt).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) %>
+              </span>
+            <% } %>
+            <% if (r.step) { %>
+              <span class="pill pill-blue" style="font-size:11px;"><%= r.step %></span>
+            <% } %>
+          </div>
+
+          <!-- Hidden off input -->
+          <input type="hidden" id="r_enabled_off_<%= i %>" name="r_enabled_off_<%= i %>" value="0">
+
+          <!-- Edit Fields -->
+          <div id="rFields_<%= i %>">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">提醒時間</label>
+                <input type="datetime-local"
+                  name="r_time_<%= i %>"
+                  value="<%= rDate %>"
+                  style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-input);font-family:Manrope,sans-serif;font-size:13px;color:var(--text-primary);background:var(--bg-surface);box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">對應步驟</label>
+                <input type="text"
+                  name="r_step_<%= i %>"
+                  value="<%= r.step || '' %>"
+                  placeholder="步驟名稱"
+                  style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-input);font-family:Manrope,sans-serif;font-size:13px;color:var(--text-primary);background:var(--bg-surface);box-sizing:border-box;">
+              </div>
+            </div>
+            <div style="margin-bottom:10px;">
+              <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">提醒訊息</label>
+              <textarea name="r_msg_<%= i %>"
+                rows="3"
+                style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-input);font-family:Manrope,sans-serif;font-size:13px;color:var(--text-primary);background:var(--bg-surface);resize:vertical;box-sizing:border-box;"><%= r.message || '' %></textarea>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:700;color:var(--text-muted);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em;">完成標準</label>
+              <input type="text"
+                name="r_criteria_<%= i %>"
+                value="<%= r.completionCriteria || '' %>"
+                placeholder="例：完成並繳交作業"
+                style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r-input);font-family:Manrope,sans-serif;font-size:13px;color:var(--text-primary);background:var(--bg-surface);box-sizing:border-box;">
+            </div>
+          </div>
+
+        </div>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="btn-row">
+      <button type="submit" class="button button-primary button-lg">✅ 建立任務</button>
+      <a href="/" class="button button-secondary button-lg">返回修改</a>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+function toggleRCard(i, enabled) {
+  const card = document.getElementById('rCard_' + i);
+  const fields = document.getElementById('rFields_' + i);
+  const offHidden = document.getElementById('r_enabled_off_' + i);
+  card.style.opacity = enabled ? '1' : '0.35';
+  fields.style.pointerEvents = enabled ? '' : 'none';
+  offHidden.disabled = enabled;
+}
+document.querySelectorAll('[id^="r_enabled_off_"]').forEach(el => el.disabled = true);
+</script>
+
+</body>
+</html>

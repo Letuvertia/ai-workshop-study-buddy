@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 陪伴助教生成器</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#6c5ce7;--primary-dark:#5340c9;--teal:#16c2a3;
+  --green:#23b26d;--orange:#f5a623;--red:#e74c3c;
+  --bg:#f0eeff;--card:#fff;--text:#2d2d3a;--muted:#6b6b80;
+  --border:#ddd8f8;--shadow:0 2px 12px rgba(108,92,231,.12);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#f0eeff 0%,#e8f4fd 100%);min-height:100vh;color:var(--text);font-size:15px;line-height:1.6}
+
+/* ── 頁首 ── */
+#app-header{background:#fff;border-bottom:2px solid var(--border);padding:0 20px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(108,92,231,.08)}
+.header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:12px;height:56px}
+.app-title{font-size:15px;font-weight:700;color:var(--primary);white-space:nowrap}
+.progress-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.progress-label{font-size:11px;color:var(--muted)}
+.progress-bar-outer{height:8px;background:#ede9ff;border-radius:9px;overflow:hidden}
+.progress-bar-inner{height:100%;border-radius:9px;background:linear-gradient(90deg,var(--primary),var(--teal));transition:width .4s ease}
+.badge-row{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:11px;padding:2px 8px;border-radius:9px;font-weight:600}
+.badge-done{background:#e8faf3;color:var(--green);border:1px solid #b2ead0}
+.badge-pending{background:#f4f3fe;color:var(--muted);border:1px solid var(--border)}
+#llm-toggle-btn{background:none;border:1.5px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--primary);white-space:nowrap;transition:.2s}
+#llm-toggle-btn.connected{border-color:var(--green);color:var(--green)}
+#llm-toggle-btn:hover{background:var(--bg)}
+
+/* ── LLM 設定面板 ── */
+#llm-panel{display:none;position:fixed;top:62px;right:16px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;width:340px;z-index:200;box-shadow:0 8px 32px rgba(108,92,231,.16)}
+#llm-panel.open{display:block}
+#llm-panel h3{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:12px}
+.llm-row{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.llm-row label{font-size:12px;color:var(--muted)}
+.llm-row input,.llm-row select{border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;font-size:13px;width:100%}
+.llm-row input:focus,.llm-row select:focus{outline:none;border-color:var(--primary)}
+.llm-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-sm{font-size:12px;padding:5px 12px;border-radius:7px;border:none;cursor:pointer;font-weight:600;transition:.15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-outline{background:#fff;color:var(--primary);border:1.5px solid var(--primary)}
+.btn-outline:hover{background:var(--bg)}
+.btn-danger{background:var(--red);color:#fff}
+.llm-status{font-size:12px;margin-top:8px;padding:6px 10px;border-radius:7px}
+.llm-status.ok{background:#e8faf3;color:var(--green)}
+.llm-status.err{background:#fdecea;color:var(--red)}
+
+/* ── 主容器 ── */
+#main{max-width:900px;margin:0 auto;padding:24px 16px 60px}
+
+/* ── 卡片 ── */
+.card{background:var(--card);border-radius:14px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);border:1.5px solid var(--border)}
+.card-title{font-size:17px;font-weight:700;color:var(--primary);margin-bottom:6px}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:16px}
+.section-label{font-size:13px;font-weight:600;color:var(--text);margin:14px 0 8px}
+
+/* ── 選項網格 ── */
+.chip-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:#faf9ff;font-size:13px;cursor:pointer;transition:.15s;user-select:none}
+.chip:hover{border-color:var(--primary);background:var(--bg)}
+.chip.selected{border-color:var(--primary);background:#ede9ff;color:var(--primary);font-weight:600}
+.chip-radio{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:#faf9ff;font-size:13px;cursor:pointer;transition:.15s;user-select:none}
+.chip-radio:hover{border-color:var(--primary);background:var(--bg)}
+.chip-radio.selected{border-color:var(--primary-dark);background:var(--primary);color:#fff;font-weight:600}
+
+/* ── 輸入 ── */
+input[type=text],input[type=date],textarea,select.form-select{
+  width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:14px;font-family:inherit;background:#faf9ff;transition:.2s
+}
+input[type=text]:focus,input[type=date]:focus,textarea:focus,select.form-select:focus{outline:none;border-color:var(--primary);background:#fff}
+textarea{resize:vertical;min-height:72px}
+.other-input{display:none;margin-top:8px}
+.other-input.show{display:block}
+
+/* ── 輸出卡片 ── */
+.output-card{background:linear-gradient(135deg,#f8f6ff,#f0fdf8);border:1.5px solid #c8c0f8;border-radius:12px;padding:16px;margin-top:12px}
+.output-card pre{white-space:pre-wrap;font-size:13px;font-family:inherit;color:var(--text);line-height:1.7}
+.output-card .output-label{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+/* ── 按鈕 ── */
+.btn{display:inline-block;padding:10px 22px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:.15s}
+.btn-lg{padding:12px 28px;font-size:15px}
+.btn-full{width:100%;text-align:center}
+.btn-primary-lg{background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 3px 12px rgba(108,92,231,.25)}
+.btn-primary-lg:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(108,92,231,.3)}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-teal:hover{background:#12a88a}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#1a9a5c}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}
+.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+/* ── 滑桿 ── */
+.slider-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.slider-label-row{display:flex;justify-content:space-between;font-size:13px}
+.slider-label-row span:first-child{color:var(--text)}
+.slider-val{font-weight:700;color:var(--primary)}
+input[type=range]{width:100%;accent-color:var(--primary)}
+
+/* ── 模組列表 ── */
+.module-list{display:flex;flex-direction:column;gap:8px}
+.module-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;background:#faf9ff}
+.module-item.checked{border-color:var(--primary);background:#f4f2fe}
+.module-item input[type=checkbox]{accent-color:var(--primary);width:16px;height:16px}
+.module-item-name{font-size:13px;font-weight:600;flex:1}
+.module-item-desc{font-size:12px;color:var(--muted);flex:2}
+.drag-handle{cursor:grab;color:var(--border);font-size:18px;user-select:none}
+
+/* ── 觸發情境 ── */
+.trigger-table{width:100%;border-collapse:collapse;font-size:13px}
+.trigger-table th{background:var(--bg);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;text-align:left}
+.trigger-table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.trigger-table td input{border:none;background:transparent;font-size:13px;width:100%}
+.trigger-table td input:focus{outline:1px solid var(--primary);border-radius:4px}
+
+/* ── 流程步驟 ── */
+.flow-list{display:flex;flex-direction:column;gap:6px}
+.flow-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:#faf9ff;font-size:13px}
+.flow-item .step-num{width:22px;height:22px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.flow-item .step-text{flex:1}
+.flow-item .step-move{cursor:pointer;color:var(--muted);font-size:16px;user-select:none;padding:0 2px}
+.flow-item .step-move:hover{color:var(--primary)}
+
+/* ── 首頁 ── */
+#home-screen{text-align:center;padding:40px 0}
+.home-icon{font-size:56px;margin-bottom:16px}
+.home-title{font-size:28px;font-weight:800;color:var(--primary);margin-bottom:8px}
+.home-sub{font-size:15px;color:var(--muted);margin-bottom:32px;line-height:1.8}
+.stage-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:32px}
+.stage-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:left}
+.stage-card-num{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.stage-card-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
+.stage-card-desc{font-size:12px;color:var(--muted);line-height:1.6}
+.home-start-row{display:flex;flex-direction:column;gap:10px;align-items:center}
+.home-name-row{display:flex;gap:10px;width:100%;max-width:440px}
+.home-name-row input{flex:1}
+
+/* ── 關卡頁首 ── */
+.stage-header{border-bottom:2px solid var(--border);margin-bottom:20px;padding-bottom:16px}
+.stage-num{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stage-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px}
+.stage-meta{font-size:13px;color:var(--muted)}
+.stage-badge{display:inline-block;font-size:11px;padding:2px 10px;border-radius:9px;background:#ede9ff;color:var(--primary);font-weight:700;margin-top:6px}
+
+/* ── 成就徽章 ── */
+.achievement-box{background:linear-gradient(135deg,#fffbe6,#fff8e1);border:2px solid var(--orange);border-radius:14px;padding:20px;text-align:center;margin-top:24px}
+.achievement-box .ach-title{font-size:16px;font-weight:800;color:var(--orange)}
+.achievement-box .ach-sub{font-size:13px;color:#a07000;margin-top:4px}
+
+/* ── 完成摘要 ── */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.summary-item{background:var(--bg);border-radius:9px;padding:10px 14px}
+.summary-item .s-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.summary-item .s-val{font-size:13px;color:var(--text);margin-top:2px;font-weight:600}
+
+/* ── 訊息提示 ── */
+.notice{font-size:13px;padding:10px 14px;border-radius:8px;margin-top:10px}
+.notice-info{background:#ede9ff;color:var(--primary);border-left:3px solid var(--primary)}
+.notice-warn{background:#fff8e1;color:#a07000;border-left:3px solid var(--orange)}
+.notice-ok{background:#e8faf3;color:#156a45;border-left:3px solid var(--green)}
+.notice-err{background:#fdecea;color:var(--red);border-left:3px solid var(--red)}
+
+/* ── 載入中 ── */
+.loading-row{display:flex;align-items:center;gap:10px;padding:12px;color:var(--muted);font-size:13px}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── 最終 Prompt ── */
+.prompt-box{background:#1a1a2e;color:#e0d8ff;border-radius:10px;padding:16px;font-size:12.5px;font-family:'Courier New',monospace;line-height:1.7;overflow-x:auto;white-space:pre-wrap;max-height:320px;overflow-y:auto}
+
+/* ── 導覽列 ── */
+.nav-dots{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.nav-dot{width:28px;height:8px;border-radius:4px;background:var(--border);cursor:pointer;transition:.2s}
+.nav-dot.done{background:var(--primary)}
+.nav-dot.active{background:var(--teal);width:36px}
+
+/* ── RWD ── */
+@media(max-width:600px){
+  #main{padding:16px 10px 48px}
+  .card{padding:16px}
+  .summary-grid{grid-template-columns:1fr}
+  .stage-overview{grid-template-columns:1fr 1fr}
+  .home-name-row{flex-direction:column}
+  #llm-panel{width:calc(100vw - 32px);right:16px}
+}
+
+/* ── 分隔線 ── */
+.divider{border:none;border-top:1.5px solid var(--border);margin:20px 0}
+
+/* ── Copy 按鈕 ── */
+.copy-btn{font-size:12px;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:#fff;cursor:pointer;color:var(--primary);font-weight:600;transition:.15s}
+.copy-btn:hover{background:var(--bg)}
+.copy-btn.copied{border-color:var(--green);color:var(--green)}
+
+/* ── 隱藏工具 ── */
+.hidden{display:none!important}
+
+</style>
+</head>
+<body>
+
+<!-- ── 頁首 ── -->
+<header id="app-header">
+  <div class="header-inner">
+    <span class="app-title">AI 陪伴助教生成器</span>
+    <div class="progress-wrap">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="global-progress" style="width:0%"></div>
+      </div>
+      <div class="badge-row" id="badge-row"></div>
+    </div>
+    <button id="llm-toggle-btn" onclick="toggleLLMPanel()">助教引擎</button>
+  </div>
+</header>
+
+<!-- ── LLM 設定面板 ── -->
+<div id="llm-panel">
+  <h3>助教引擎設定</h3>
+  <div class="llm-row">
+    <label>API 端點</label>
+    <input type="text" id="llm-endpoint" placeholder="https://...">
+  </div>
+  <div class="llm-row">
+    <label>模型</label>
+    <select id="llm-model-select" class="form-select" style="width:100%"></select>
+  </div>
+  <div class="llm-row">
+    <label>API Key（選填）</label>
+    <input type="text" id="llm-apikey" placeholder="留空亦可">
+  </div>
+  <div class="llm-row">
+    <label>Temperature：<span id="llm-temp-val">0.7</span></label>
+    <input type="range" min="0" max="1" step="0.05" id="llm-temp" oninput="document.getElementById('llm-temp-val').textContent=this.value">
+  </div>
+  <div class="llm-actions">
+    <button class="btn-sm btn-outline" onclick="loadLLMModels()">載入模型</button>
+    <button class="btn-sm btn-primary" onclick="testLLMConnection()">測試連線</button>
+    <button class="btn-sm btn-ghost" onclick="saveLLMSettings()">儲存</button>
+  </div>
+  <div id="llm-status-msg"></div>
+</div>
+
+<!-- ── 主內容 ── -->
+<main id="main">
+
+  <!-- ── 首頁 ── -->
+  <div id="home-screen">
+    <div class="home-icon">🎓</div>
+    <h1 class="home-title">我的 AI 陪伴助教 v1.0</h1>
+    <p class="home-sub">
+      這個工具引導你一步步設計一位專屬的 AI 學習助教。<br>
+      完成四個關卡後，你會拿到可以直接使用的助教 Prompt 與互動網頁。
+    </p>
+    <div class="stage-overview">
+      <div class="stage-card">
+        <div class="stage-card-num">關卡 1</div>
+        <div class="stage-card-title">任務偵查站</div>
+        <div class="stage-card-desc">設定助教對你的理解——你是誰、你想要什麼</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-card-num">關卡 2</div>
+        <div class="stage-card-title">助教架構工坊</div>
+        <div class="stage-card-desc">設計助教的工作系統——模式、模組、流程</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-card-num">關卡 3</div>
+        <div class="stage-card-title">品質測試站</div>
+        <div class="stage-card-desc">實際測試這位助教並評估品質</div>
+      </div>
+      <div class="stage-card">
+        <div class="stage-card-num">關卡 4</div>
+        <div class="stage-card-title">助教發布室</div>
+        <div class="stage-card-desc">整合一切，發布你的 AI 助教 v1.0</div>
+      </div>
+    </div>
+    <div class="home-start-row">
+      <div class="home-name-row">
+        <input type="text" id="home-tutor-name" placeholder="幫助教起個名字（如：小哲）">
+        <input type="text" id="home-task-title" placeholder="這學期主要任務（如：論文研究）">
+      </div>
+      <button class="btn btn-lg btn-primary-lg" onclick="startApp()">開始設計我的助教</button>
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:var(--muted)">進度自動儲存。重整頁面後可繼續作業。</p>
+  </div>
+
+  <!-- ── 關卡容器（動態填入）── -->
+  <div id="stage-container" class="hidden"></div>
+
+</main>
+
+<script>
+'use strict';
+
+/* ════════════════════════════════
+   STATE
+   ════════════════════════════════ */
+const STORE_KEY = 'tutorVersionGenerator_v3';
+const BADGES = ['助教需求設計師','助教架構設計師','助教測試員','助教發布設計師'];
+
+const DEFAULTS = {
+  currentStage: 0,
+  completedStages: [],
+  home: { tutorVersionName: '', taskTitle: '' },
+  stage1: {
+    learningProfile: [], learningProfileOther: '',
+    targetAbilities: [], targetAbilitiesOther: '',
+    desiredOutcome: '', taskDescription: '',
+    weeklyAvailableTime: '', deadline: '',
+    preferredStudyTime: [], availableMaterials: [],
+    tutorNeedsCard: ''
+  },
+  stage2: {
+    studentNeedSummary: null,
+    recommendedWorkModes: [], selectedWorkMode: '',
+    tutorModules: [], moduleTriggers: [],
+    interactionFlow: [],
+    tutorWorkflowBlueprint: ''
+  },
+  stage3: {
+    testScenario: '', testInput: '', tutorTestResponse: '',
+    qualityScores: { clarity:3, depth:3, guidance:3, encouragement:3, structure:3, relevance:3, safety:3, adaptability:3 },
+    scoresTouched: false,
+    responseProblems: [], revisionTargets: [],
+    tutorQualityReport: ''
+  },
+  stage4: {
+    selectedRevisions: [], finalTutorPrompt: '',
+    generatedTutorHtml: '', published: false
+  },
+  llm: {
+    endpoint: 'https://shea-projectional-amal.ngrok-free.dev/v1',
+    model: '', apiKey: '', temperature: 0.7, enabled: false
+  }
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULTS));
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state = deepMerge(JSON.parse(JSON.stringify(DEFAULTS)), parsed);
+    }
+  } catch(e) { console.error('loadState', e); }
+}
+
+function saveState() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function deepMerge(target, src) {
+  for (const k in src) {
+    if (src[k] !== null && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+      if (typeof target[k] !== 'object' || target[k] === null) target[k] = {};
+      deepMerge(target[k], src[k]);
+    } else {
+      target[k] = src[k];
+    }
+  }
+  return target;
+}
+
+/* ════════════════════════════════
+   PROGRESS / BADGES
+   ════════════════════════════════ */
+const PROGRESS_MAP = [0, 25, 50, 75, 100];
+
+function updateProgress() {
+  const done = state.completedStages.length;
+  const pct = PROGRESS_MAP[Math.min(done, 4)];
+  document.getElementById('global-progress').style.width = pct + '%';
+  const badge_labels = ['需求設計', '架構設計', '品質測試', '助教發布'];
+  document.getElementById('badge-row').innerHTML = badge_labels.map((b, i) =>
+    `<span class="badge ${state.completedStages.includes(i+1) ? 'badge-done' : 'badge-pending'}">${b}</span>`
+  ).join('');
+}
+
+/* ════════════════════════════════
+   LLM 面板
+   ════════════════════════════════ */
+function toggleLLMPanel() {
+  const panel = document.getElementById('llm-panel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    document.getElementById('llm-endpoint').value = state.llm.endpoint;
+    document.getElementById('llm-apikey').value = state.llm.apiKey;
+    document.getElementById('llm-temp').value = state.llm.temperature;
+    document.getElementById('llm-temp-val').textContent = state.llm.temperature;
+    refreshModelSelect();
+  }
+}
+
+function refreshModelSelect() {
+  const sel = document.getElementById('llm-model-select');
+  sel.innerHTML = state.llm.model
+    ? `<option value="${state.llm.model}">${state.llm.model}</option>`
+    : `<option value="">（尚未載入模型）</option>`;
+}
+
+async function loadLLMModels() {
+  setLLMStatus('載入中...', '');
+  const endpoint = document.getElementById('llm-endpoint').value.trim();
+  const apiKey = document.getElementById('llm-apikey').value.trim();
+  try {
+    const url = endpoint.replace(/\/+$/, '') + '/models';
+    const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
+    if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+    const resp = await fetch(url, { headers });
+    if (!resp.ok) throw new Error(resp.status);
+    const data = await resp.json();
+    const models = (data.data || data.models || []).map(m => m.id || m.name || m).filter(Boolean);
+    if (!models.length) throw new Error('無可用模型');
+    const sel = document.getElementById('llm-model-select');
+    sel.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    if (!state.llm.model && models.length) sel.value = models[0];
+    else if (models.includes(state.llm.model)) sel.value = state.llm.model;
+    setLLMStatus('已載入 ' + models.length + ' 個模型', 'ok');
+  } catch(e) {
+    setLLMStatus('載入失敗：' + e.message, 'err');
+  }
+}
+
+async function testLLMConnection() {
+  saveLLMSettings();
+  setLLMStatus('測試中...', '');
+  const result = await callLocalLLM('test', { messages: [{ role:'user', content:'回覆「OK」兩個字。' }] });
+  if (result.success) {
+    setLLMStatus('連線成功：' + (result.content || '').slice(0, 40), 'ok');
+    state.llm.enabled = true;
+    document.getElementById('llm-toggle-btn').classList.add('connected');
+  } else {
+    setLLMStatus('連線失敗：' + result.error, 'err');
+    state.llm.enabled = false;
+    document.getElementById('llm-toggle-btn').classList.remove('connected');
+  }
+  saveState();
+}
+
+function saveLLMSettings() {
+  state.llm.endpoint = document.getElementById('llm-endpoint').value.trim();
+  state.llm.apiKey = document.getElementById('llm-apikey').value.trim();
+  state.llm.temperature = parseFloat(document.getElementById('llm-temp').value) || 0.7;
+  const sel = document.getElementById('llm-model-select');
+  if (sel.value) state.llm.model = sel.value;
+  saveState();
+}
+
+function setLLMStatus(msg, type) {
+  const el = document.getElementById('llm-status-msg');
+  el.className = 'llm-status' + (type ? ' ' + type : '');
+  el.textContent = msg;
+}
+
+/* ════════════════════════════════
+   LLM 呼叫核心
+   ════════════════════════════════ */
+async function callLocalLLM(taskType, payload) {
+  try {
+    const ep = (state.llm.endpoint || '').replace(/\/+$/, '');
+    const model = state.llm.model || 'llama3';
+    const apiKey = state.llm.apiKey || '';
+    const temperature = state.llm.temperature || 0.7;
+    const messages = payload.messages || [];
+
+    // 判斷 Ollama vs OpenAI-compatible
+    const isOllama = ep.includes(':11434') || ep.includes('/api');
+    let url, body, headers;
+
+    headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' };
+    if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+
+    if (isOllama) {
+      url = ep + '/api/chat';
+      body = { model, messages, stream: false, options: { temperature } };
+    } else {
+      url = ep + '/chat/completions';
+      body = { model, messages, temperature, stream: false };
+    }
+
+    const resp = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+
+    let content = '';
+    if (isOllama) {
+      content = data.message?.content || data.response || '';
+    } else {
+      content = data.choices?.[0]?.message?.content || '';
+    }
+    return { success: true, content: content.trim() };
+  } catch(e) {
+    console.error('callLocalLLM', taskType, e);
+    return { success: false, error: e.message, content: '' };
+  }
+}
+
+/* ════════════════════════════════
+   APP 啟動 / 路由
+   ════════════════════════════════ */
+function startApp() {
+  const nameVal = document.getElementById('home-tutor-name').value.trim();
+  const taskVal = document.getElementById('home-task-title').value.trim();
+  state.home.tutorVersionName = nameVal || '我的助教';
+  state.home.taskTitle = taskVal || '學期任務';
+  state.currentStage = 1;
+  saveState();
+  renderCurrentStage();
+}
+
+function goToStage(n) {
+  state.currentStage = n;
+  saveState();
+  renderCurrentStage();
+  window.scrollTo(0, 0);
+}
+
+function renderCurrentStage() {
+  const home = document.getElementById('home-screen');
+  const container = document.getElementById('stage-container');
+  if (state.currentStage === 0) {
+    home.classList.remove('hidden');
+    container.classList.add('hidden');
+    document.getElementById('home-tutor-name').value = state.home.tutorVersionName;
+    document.getElementById('home-task-title').value = state.home.taskTitle;
+  } else {
+    home.classList.add('hidden');
+    container.classList.remove('hidden');
+    const renders = [null, renderStage1, renderStage2, renderStage3, renderStage4];
+    if (renders[state.currentStage]) renders[state.currentStage]();
+  }
+  updateProgress();
+}
+
+function completeStage(n) {
+  if (!state.completedStages.includes(n)) state.completedStages.push(n);
+  saveState();
+  updateProgress();
+}
+
+/* ════════════════════════════════
+   HELPERS — UI
+   ════════════════════════════════ */
+function el(id) { return document.getElementById(id); }
+
+function chipMulti(containerId, options, stateArr, onChange) {
+  const c = el(containerId);
+  if (!c) return;
+  c.querySelectorAll('.chip').forEach(chip => {
+    const val = chip.dataset.val;
+    chip.classList.toggle('selected', stateArr.includes(val));
+    chip.onclick = () => {
+      const i = stateArr.indexOf(val);
+      if (i >= 0) stateArr.splice(i, 1); else stateArr.push(val);
+      chip.classList.toggle('selected', stateArr.includes(val));
+      if (onChange) onChange();
+      saveState();
+    };
+  });
+}
+
+function chipSingle(containerId, stateKey, stageKey, onChange) {
+  const c = el(containerId);
+  if (!c) return;
+  c.querySelectorAll('.chip-radio').forEach(chip => {
+    const val = chip.dataset.val;
+    chip.classList.toggle('selected', state[stageKey][stateKey] === val);
+    chip.onclick = () => {
+      state[stageKey][stateKey] = val;
+      c.querySelectorAll('.chip-radio').forEach(ch => ch.classList.remove('selected'));
+      chip.classList.add('selected');
+      if (onChange) onChange();
+      saveState();
+    };
+  });
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+function downloadFile(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime || 'text/plain' }));
+  a.download = filename;
+  a.click();
+}
+
+/* ════════════════════════════════
+   STAGE 1 — 任務偵查站
+   ════════════════════════════════ */
+const S1_PROFILES = ['大學生','研究生','剛接觸這個主題','有一點基礎','有一定經驗','學習動力強','容易分心','需要結構感','喜歡自由探索','偏好視覺輔助'];
+const S1_ABILITIES = ['批判思考','寫作表達','資料整理分析','專題研究','時間管理','口語表達','自主學習','創意思考'];
+const S1_OUTCOMES = ['完成學期報告','完成專題','準備考試','建立學習習慣','掌握特定技能'];
+const S1_TIMES = ['少於 2 小時','2–5 小時','5–10 小時','10 小時以上'];
+const S1_STUDY_TIMES = ['早上','下午','晚上','深夜'];
+const S1_MATERIALS = ['課程講義','教科書','論文','影片','老師提供的資料','網路資源','無特定資料'];
+
+function renderStage1() {
+  const s = state.stage1;
+  document.getElementById('stage-container').innerHTML = `
+<div class="stage-header">
+  <div class="stage-num">關卡 1 ／ 4</div>
+  <div class="stage-title">任務偵查站</div>
+  <div class="stage-meta">設定助教對你的理解能力 — 完成後解鎖「助教需求設定卡」</div>
+  <div class="stage-badge">助教需求設計師</div>
+</div>
+
+<div class="card">
+  <div class="card-title">1. 你的學習輪廓</div>
+  <div class="card-sub">選擇符合你目前狀態的描述（可多選）</div>
+  <div class="chip-grid" id="s1-profile">
+    ${S1_PROFILES.map(p => `<span class="chip" data-val="${p}">${p}</span>`).join('')}
+  </div>
+  <div class="other-input ${s.learningProfileOther ? 'show' : ''}" id="s1-profile-other-wrap">
+    <input type="text" id="s1-profile-other" placeholder="補充說明…" value="${esc(s.learningProfileOther)}">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">2. 想加強的能力</div>
+  <div class="card-sub">希望這位助教幫你強化哪些能力？（可多選）</div>
+  <div class="chip-grid" id="s1-abilities">
+    ${S1_ABILITIES.map(a => `<span class="chip" data-val="${a}">${a}</span>`).join('')}
+    <span class="chip" data-val="其他">其他</span>
+  </div>
+  <div class="other-input ${s.targetAbilitiesOther ? 'show' : ''}" id="s1-abilities-other-wrap">
+    <input type="text" id="s1-abilities-other" placeholder="請說明其他能力…" value="${esc(s.targetAbilitiesOther)}">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">3. 想完成的成果</div>
+  <div class="card-sub">選擇最主要的學習目標</div>
+  <div class="chip-grid" id="s1-outcome">
+    ${S1_OUTCOMES.map(o => `<span class="chip-radio" data-val="${o}">${o}</span>`).join('')}
+  </div>
+  <div class="section-label">用一句話描述你的主要任務</div>
+  <textarea id="s1-task-desc" placeholder="例：完成一篇關於人工智慧倫理的期末報告">${esc(s.taskDescription)}</textarea>
+</div>
+
+<div class="card">
+  <div class="card-title">4. 時間與使用條件</div>
+  <div class="section-label">每週可用於學習的時間</div>
+  <div class="chip-grid" id="s1-weekly">
+    ${S1_TIMES.map(t => `<span class="chip-radio" data-val="${t}">${t}</span>`).join('')}
+  </div>
+  <div class="section-label">預計完成日期（選填）</div>
+  <input type="date" id="s1-deadline" value="${esc(s.deadline)}" style="max-width:200px">
+  <div class="section-label">偏好的學習時段（可多選）</div>
+  <div class="chip-grid" id="s1-studytime">
+    ${S1_STUDY_TIMES.map(t => `<span class="chip" data-val="${t}">${t}</span>`).join('')}
+  </div>
+  <div class="section-label">可提供給助教的學習材料（可多選）</div>
+  <div class="chip-grid" id="s1-materials">
+    ${S1_MATERIALS.map(m => `<span class="chip" data-val="${m}">${m}</span>`).join('')}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">5. 助教需求設定卡</div>
+  <div class="card-sub">根據以上設定自動生成。確認後即可進入下一關。</div>
+  <button class="btn btn-teal" onclick="generateNeedsCard()">生成需求設定卡</button>
+  <div id="s1-card-out" style="margin-top:12px"></div>
+  <div class="btn-row" id="s1-next-row" style="display:none">
+    <button class="btn btn-primary-lg" onclick="finishStage1()">確認並進入關卡 2</button>
+    <button class="btn btn-ghost" onclick="goToStage(0)">回首頁</button>
+  </div>
+</div>
+`;
+
+  // 綁定多選
+  chipMulti('s1-profile', S1_PROFILES, state.stage1.learningProfile, () => {});
+  chipMulti('s1-abilities', [...S1_ABILITIES, '其他'], state.stage1.targetAbilities, () => {
+    const hasOther = state.stage1.targetAbilities.includes('其他');
+    el('s1-abilities-other-wrap').classList.toggle('show', hasOther);
+  });
+  chipMulti('s1-studytime', S1_STUDY_TIMES, state.stage1.preferredStudyTime, () => {});
+  chipMulti('s1-materials', S1_MATERIALS, state.stage1.availableMaterials, () => {});
+
+  // 單選
+  chipSingle('s1-outcome', 'desiredOutcome', 'stage1', null);
+  chipSingle('s1-weekly', 'weeklyAvailableTime', 'stage1', null);
+
+  // 「補充說明」展開
+  el('s1-profile').querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => {
+      el('s1-profile-other-wrap').classList.toggle('show',
+        state.stage1.learningProfile.length > 0 && state.stage1.learningProfile.some(p => S1_PROFILES.includes(p)));
+    });
+  });
+
+  // 文字輸入同步
+  const sync = (id, key, stageKey) => {
+    const inp = el(id);
+    if (inp) inp.addEventListener('input', () => { state[stageKey][key] = inp.value; saveState(); });
+  };
+  sync('s1-profile-other', 'learningProfileOther', 'stage1');
+  sync('s1-abilities-other', 'targetAbilitiesOther', 'stage1');
+  sync('s1-task-desc', 'taskDescription', 'stage1');
+  sync('s1-deadline', 'deadline', 'stage1');
+
+  // 若已有設定卡，顯示
+  if (state.stage1.tutorNeedsCard) {
+    el('s1-card-out').innerHTML = `<div class="output-card"><div class="output-label">助教需求設定卡</div><pre>${esc(state.stage1.tutorNeedsCard)}</pre></div>`;
+    el('s1-next-row').style.display = 'flex';
+  }
+}
+
+function generateNeedsCard() {
+  const s = state.stage1;
+  s.taskDescription = (el('s1-task-desc') || {}).value || s.taskDescription;
+  s.deadline = (el('s1-deadline') || {}).value || s.deadline;
+  s.learningProfileOther = (el('s1-profile-other') || {}).value || s.learningProfileOther;
+  s.targetAbilitiesOther = (el('s1-abilities-other') || {}).value || s.targetAbilitiesOther;
+
+  const profile = [...s.learningProfile, s.learningProfileOther ? '補充：' + s.learningProfileOther : ''].filter(Boolean).join('、') || '（未填）';
+  const abilities = [...s.targetAbilities.filter(a => a !== '其他'), s.targetAbilitiesOther ? s.targetAbilitiesOther : ''].filter(Boolean).join('、') || '（未填）';
+
+  // 推導陪伴方式與應避免行為
+  let companionStyle = '循序漸進地提問引導';
+  let avoid = '直接給答案，不讓學生自己思考';
+  if (s.learningProfile.includes('容易分心')) { companionStyle = '以短任務切割、定時確認進度'; avoid = '一次給予大量資訊'; }
+  if (s.learningProfile.includes('喜歡自由探索')) { companionStyle = '提供方向與資源，讓學生自由發揮'; avoid = '過度干涉或限制探索'; }
+  if (s.learningProfile.includes('需要結構感')) { companionStyle = '提供清晰步驟與結構化框架'; avoid = '模糊指示或開放式任務'; }
+
+  const card = `【助教需求設定卡】
+
+助教名稱：${state.home.tutorVersionName}
+主要任務：${state.home.taskTitle}
+
+─ 學生學習輪廓 ─
+${profile}
+
+─ 想加強的能力 ─
+${abilities}
+
+─ 想完成的成果 ─
+${s.desiredOutcome || '（未選）'}：${s.taskDescription || '（未填）'}
+
+─ 時間與條件 ─
+每週可用時間：${s.weeklyAvailableTime || '（未選）'}
+預計完成日期：${s.deadline || '（未填）'}
+偏好時段：${s.preferredStudyTime.join('、') || '（未選）'}
+可提供材料：${s.availableMaterials.join('、') || '（未選）'}
+
+─ 推導的助教設計 ─
+陪伴方式：${companionStyle}
+應避免：${avoid}`;
+
+  state.stage1.tutorNeedsCard = card;
+  saveState();
+
+  el('s1-card-out').innerHTML = `<div class="output-card"><div class="output-label">助教需求設定卡</div><pre>${esc(card)}</pre></div>`;
+  el('s1-next-row').style.display = 'flex';
+}
+
+function finishStage1() {
+  completeStage(1);
+  goToStage(2);
+}
+
+/* ════════════════════════════════
+   STAGE 2 — 助教架構工坊
+   ════════════════════════════════ */
+const WORK_MODES = [
+  { id:'socratic', name:'蘇格拉底式引導法', desc:'以提問引導學生自行找到答案，適合培養批判思考' },
+  { id:'decompose', name:'任務分解法', desc:'將複雜任務拆解為可執行的小步驟，適合容易卡關的學生' },
+  { id:'reflect', name:'反思回饋法', desc:'在學生完成任務後引導反思與改善，適合寫作類任務' },
+  { id:'system', name:'系統思考法', desc:'用整體視角分析問題，適合研究型或跨領域任務' }
+];
+
+const DEFAULT_MODULES = [
+  { id:'goal', name:'目標澄清模組', desc:'幫助學生釐清具體目標與成功標準' },
+  { id:'task', name:'任務拆解模組', desc:'將大任務分解為可執行的步驟清單' },
+  { id:'think', name:'思考引導模組', desc:'以提問方式引導學生深化思考' },
+  { id:'write', name:'寫作輔助模組', desc:'提供結構、語氣、論點的改進建議' },
+  { id:'search', name:'資料搜尋建議模組', desc:'建議資料來源與搜尋策略' },
+  { id:'track', name:'進度追蹤模組', desc:'協助規劃時程、確認進度' },
+  { id:'reflect', name:'反思回饋模組', desc:'引導學生在完成後反思與記錄學習' },
+  { id:'encourage', name:'鼓勵支持模組', desc:'在學生遇到挫折時提供情緒支持' }
+];
+
+const DEFAULT_FLOW = [
+  '確認學生當下的目標與狀態',
+  '聆聽問題，用提問引導思考',
+  '提供具體步驟或資源',
+  '要求學生嘗試，再給予回饋',
+  '結束前確認下一步行動'
+];
+
+function renderStage2() {
+  const s = state.stage2;
+
+  // 初始化預設模組（若尚未設定）
+  if (!s.tutorModules.length) {
+    s.tutorModules = DEFAULT_MODULES.map(m => ({ ...m, enabled: true }));
+  }
+  if (!s.interactionFlow.length) {
+    s.interactionFlow = [...DEFAULT_FLOW];
+  }
+  if (!s.moduleTriggers.length) {
+    s.moduleTriggers = [
+      { trigger: '學生說不知道怎麼開始', module: '目標澄清模組' },
+      { trigger: '學生感到不知所措', module: '任務拆解模組' },
+      { trigger: '學生需要寫作回饋', module: '寫作輔助模組' },
+      { trigger: '學生情緒低落', module: '鼓勵支持模組' }
+    ];
+  }
+
+  document.getElementById('stage-container').innerHTML = `
+<div class="stage-header">
+  <div class="stage-num">關卡 2 ／ 4</div>
+  <div class="stage-title">助教架構工坊</div>
+  <div class="stage-meta">設計助教的工作系統 — 模式、模組、觸發情境、互動流程</div>
+  <div class="stage-badge">助教架構設計師</div>
+</div>
+
+<div class="card">
+  <div class="card-title">1. 學生需求彙整</div>
+  <div class="card-sub">根據關卡 1 的設定，生成對學生需求的整體理解。</div>
+  <button class="btn btn-teal" onclick="generateNeedSummary()">生成需求彙整</button>
+  <div id="s2-summary-out" style="margin-top:12px"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">2. 助教工作模式</div>
+  <div class="card-sub">選擇最符合你需求的助教工作方式</div>
+  <div class="module-list" id="s2-mode-list">
+    ${WORK_MODES.map(m => `
+      <div class="module-item ${s.selectedWorkMode === m.id ? 'checked' : ''}" id="mode-${m.id}" onclick="selectMode('${m.id}')">
+        <div class="module-item-name">${m.name}</div>
+        <div class="module-item-desc">${m.desc}</div>
+      </div>`).join('')}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">3. 功能模組</div>
+  <div class="card-sub">勾選你要啟用的模組（可拖曳排序優先順序）</div>
+  <div class="module-list" id="s2-module-list">
+    ${s.tutorModules.map((m, i) => `
+      <div class="module-item ${m.enabled ? 'checked' : ''}" id="mod-${m.id}">
+        <span class="drag-handle">⠿</span>
+        <input type="checkbox" ${m.enabled ? 'checked' : ''} onchange="toggleModule('${m.id}', this.checked)">
+        <div class="module-item-name">${m.name}</div>
+        <div class="module-item-desc">${m.desc}</div>
+      </div>`).join('')}
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-ghost btn-sm" onclick="addCustomModule()">+ 新增自訂模組</button>
+    <button class="btn btn-ghost btn-sm" onclick="suggestMoreModules()">請 AI 推薦更多</button>
+  </div>
+  <div id="s2-module-suggest" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">4. 模組啟動情境</div>
+  <div class="card-sub">設定什麼情況下觸發哪個模組</div>
+  <table class="trigger-table" id="s2-trigger-table">
+    <thead><tr><th>觸發情境</th><th>啟動模組</th><th></th></tr></thead>
+    <tbody id="s2-trigger-tbody">
+      ${s.moduleTriggers.map((t, i) => `
+        <tr>
+          <td><input value="${esc(t.trigger)}" onchange="updateTrigger(${i},'trigger',this.value)" placeholder="描述情境…"></td>
+          <td><input value="${esc(t.module)}" onchange="updateTrigger(${i},'module',this.value)" placeholder="模組名稱…"></td>
+          <td><button class="btn-sm btn-danger" onclick="removeTrigger(${i})">×</button></td>
+        </tr>`).join('')}
+    </tbody>
+  </table>
+  <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addTrigger()">+ 新增觸發</button>
+</div>
+
+<div class="card">
+  <div class="card-title">5. 互動流程</div>
+  <div class="card-sub">助教每次對話的基本流程（可調整順序）</div>
+  <div class="flow-list" id="s2-flow-list">
+    ${s.interactionFlow.map((step, i) => `
+      <div class="flow-item" id="flow-${i}">
+        <div class="step-num">${i+1}</div>
+        <div class="step-text">${esc(step)}</div>
+        <span class="step-move" onclick="moveFlow(${i},-1)">↑</span>
+        <span class="step-move" onclick="moveFlow(${i},1)">↓</span>
+        <span class="step-move" onclick="removeFlow(${i})" style="color:#e74c3c">×</span>
+      </div>`).join('')}
+  </div>
+  <div class="btn-row">
+    <input type="text" id="new-flow-input" placeholder="新增流程步驟…" style="flex:1">
+    <button class="btn btn-ghost btn-sm" onclick="addFlow()">新增</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">6. 助教工作系統藍圖</div>
+  <div class="card-sub">彙整以上設計，生成藍圖後即可進入下一關。</div>
+  <button class="btn btn-teal" onclick="generateBlueprint()">生成工作系統藍圖</button>
+  <div id="s2-blueprint-out" style="margin-top:12px"></div>
+  <div class="btn-row" id="s2-next-row" style="display:none">
+    <button class="btn btn-primary-lg" onclick="finishStage2()">確認並進入關卡 3</button>
+    <button class="btn btn-ghost" onclick="goToStage(1)">回關卡 1</button>
+  </div>
+</div>
+`;
+
+  // 顯示已有內容
+  if (s.studentNeedSummary) showNeedSummary(s.studentNeedSummary);
+  if (s.tutorWorkflowBlueprint) {
+    el('s2-blueprint-out').innerHTML = `<div class="output-card"><div class="output-label">助教工作系統藍圖</div><pre>${esc(s.tutorWorkflowBlueprint)}</pre></div>`;
+    el('s2-next-row').style.display = 'flex';
+  }
+}
+
+function selectMode(id) {
+  state.stage2.selectedWorkMode = id;
+  document.querySelectorAll('#s2-mode-list .module-item').forEach(el => el.classList.remove('checked'));
+  el('mode-' + id)?.classList.add('checked');
+  saveState();
+}
+
+function toggleModule(id, checked) {
+  const m = state.stage2.tutorModules.find(m => m.id === id);
+  if (m) { m.enabled = checked; saveState(); }
+  const row = el('mod-' + id);
+  if (row) row.classList.toggle('checked', checked);
+}
+
+async function generateNeedSummary() {
+  const out = el('s2-summary-out');
+  out.innerHTML = '<div class="loading-row"><div class="spinner"></div><span>分析學生需求中…</span></div>';
+  const s1 = state.stage1;
+
+  let summary;
+  if (state.llm.enabled) {
+    const prompt = `根據以下學生資訊，用繁體中文（台灣用語）生成一份結構化的學生需求彙整，包含：目前狀態、主要需求、學習風格、任務挑戰、時間條件、助教設計重點、不適合的支援方式。請用條列式輸出。
+
+學習輪廓：${s1.learningProfile.join('、')} ${s1.learningProfileOther}
+目標能力：${s1.targetAbilities.join('、')} ${s1.targetAbilitiesOther}
+主要任務：${s1.taskDescription}（${s1.desiredOutcome}）
+每週時間：${s1.weeklyAvailableTime}，偏好時段：${s1.preferredStudyTime.join('、')}
+可用材料：${s1.availableMaterials.join('、')}`;
+
+    const result = await callLocalLLM('summarizeStudentNeeds', {
+      messages: [{ role:'system', content:'你是一位專業教育設計師，擅長分析學習者需求。' }, { role:'user', content:prompt }]
+    });
+    if (result.success) {
+      summary = { raw: result.content };
+    }
+  }
+
+  if (!summary) {
+    // 本地規則生成
+    const lines = [];
+    lines.push('目前狀態：' + (s1.learningProfile.join('、') || '一般大學生'));
+    lines.push('主要需求：強化「' + (s1.targetAbilities.slice(0,3).join('、') || '學習能力') + '」');
+    lines.push('學習風格：' + (s1.learningProfile.includes('偏好視覺輔助') ? '視覺導向' : s1.learningProfile.includes('喜歡自由探索') ? '探索型' : '結構型'));
+    lines.push('任務挑戰：完成「' + (s1.taskDescription || s1.desiredOutcome || '學習任務') + '」');
+    lines.push('時間條件：每週 ' + (s1.weeklyAvailableTime || '未知') + '，偏好於' + (s1.preferredStudyTime.join('、') || '彈性時間') + '使用');
+    lines.push('助教設計重點：針對學生的任務類型與學習特質量身設計引導方式');
+    lines.push('不適合的支援方式：' + (s1.learningProfile.includes('容易分心') ? '一次給太多資訊' : '過度干涉學生思考'));
+    summary = { raw: lines.join('\n') };
+  }
+
+  state.stage2.studentNeedSummary = summary;
+  saveState();
+  showNeedSummary(summary);
+}
+
+function showNeedSummary(summary) {
+  el('s2-summary-out').innerHTML = `
+    <div class="output-card">
+      <div class="output-label">學生需求彙整</div>
+      <pre>${esc(summary.raw)}</pre>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="generateNeedSummary()">重新生成</button>`;
+}
+
+function updateTrigger(i, key, val) {
+  if (state.stage2.moduleTriggers[i]) state.stage2.moduleTriggers[i][key] = val;
+  saveState();
+}
+
+function removeTrigger(i) {
+  state.stage2.moduleTriggers.splice(i, 1);
+  saveState();
+  renderStage2();
+}
+
+function addTrigger() {
+  state.stage2.moduleTriggers.push({ trigger: '', module: '' });
+  saveState();
+  renderStage2();
+}
+
+function moveFlow(i, dir) {
+  const flow = state.stage2.interactionFlow;
+  const j = i + dir;
+  if (j < 0 || j >= flow.length) return;
+  [flow[i], flow[j]] = [flow[j], flow[i]];
+  saveState();
+  renderStage2();
+}
+
+function removeFlow(i) {
+  state.stage2.interactionFlow.splice(i, 1);
+  saveState();
+  renderStage2();
+}
+
+function addFlow() {
+  const inp = el('new-flow-input');
+  if (!inp || !inp.value.trim()) return;
+  state.stage2.interactionFlow.push(inp.value.trim());
+  saveState();
+  renderStage2();
+}
+
+function addCustomModule() {
+  const name = prompt('模組名稱：');
+  if (!name) return;
+  const desc = prompt('模組描述：') || '';
+  const id = 'custom_' + Date.now();
+  state.stage2.tutorModules.push({ id, name, desc, enabled: true });
+  saveState();
+  renderStage2();
+}
+
+async function suggestMoreModules() {
+  el('s2-module-suggest').innerHTML = '<div class="loading-row"><div class="spinner"></div><span>AI 推薦中…</span></div>';
+  if (!state.llm.enabled) {
+    el('s2-module-suggest').innerHTML = '<div class="notice notice-warn">請先在「助教引擎」設定並測試 LLM 連線。</div>';
+    return;
+  }
+  const task = state.stage1.taskDescription || state.home.taskTitle;
+  const result = await callLocalLLM('generateTutorWorkflow', {
+    messages: [
+      { role:'system', content:'你是一位 AI 教育助教設計師。' },
+      { role:'user', content:`針對「${task}」這類學習任務，推薦 2-3 個適合的助教功能模組。每個模組給出名稱與一句話說明，格式：「模組名稱：說明」。用繁體中文。` }
+    ]
+  });
+  if (result.success) {
+    el('s2-module-suggest').innerHTML = `<div class="output-card"><div class="output-label">AI 推薦模組</div><pre>${esc(result.content)}</pre></div>`;
+  } else {
+    el('s2-module-suggest').innerHTML = '<div class="notice notice-err">生成失敗，請確認連線狀態。</div>';
+  }
+}
+
+function generateBlueprint() {
+  const s = state.stage2;
+  const s1 = state.stage1;
+  const mode = WORK_MODES.find(m => m.id === s.selectedWorkMode) || WORK_MODES[0];
+  const enabledModules = s.tutorModules.filter(m => m.enabled);
+  const triggers = s.moduleTriggers.filter(t => t.trigger && t.module);
+
+  const bp = `【助教工作系統藍圖】
+
+助教名稱：${state.home.tutorVersionName}
+任務領域：${state.home.taskTitle}
+
+─ 工作模式 ─
+${mode.name}：${mode.desc}
+
+─ 啟用功能模組（${enabledModules.length} 個）─
+${enabledModules.map((m, i) => `${i+1}. ${m.name} — ${m.desc}`).join('\n')}
+
+─ 模組啟動情境 ─
+${triggers.map(t => `• 當「${t.trigger}」→ 啟動《${t.module}》`).join('\n') || '（使用預設觸發邏輯）'}
+
+─ 互動流程 ─
+${s.interactionFlow.map((step, i) => `步驟 ${i+1}：${step}`).join('\n')}`;
+
+  state.stage2.tutorWorkflowBlueprint = bp;
+  saveState();
+  el('s2-blueprint-out').innerHTML = `<div class="output-card"><div class="output-label">助教工作系統藍圖</div><pre>${esc(bp)}</pre></div>`;
+  el('s2-next-row').style.display = 'flex';
+}
+
+function finishStage2() {
+  completeStage(2);
+  goToStage(3);
+}
+
+/* ════════════════════════════════
+   STAGE 3 — 品質測試站
+   ════════════════════════════════ */
+const TEST_SCENARIOS = [
+  { id:'start', label:'剛開始不知道如何著手' },
+  { id:'stuck', label:'卡在某個概念上' },
+  { id:'draft', label:'完成草稿需要回饋' },
+  { id:'low', label:'感到沮喪想放棄' }
+];
+
+const QUALITY_DIMS = [
+  { id:'clarity', label:'回應清晰度', desc:'回應是否清楚易懂' },
+  { id:'depth', label:'引導深度', desc:'是否引導思考而非直接給答案' },
+  { id:'guidance', label:'步驟具體性', desc:'是否提供可執行的步驟' },
+  { id:'encouragement', label:'鼓勵效果', desc:'是否有效建立信心' },
+  { id:'structure', label:'結構完整性', desc:'回應是否結構清晰' },
+  { id:'relevance', label:'任務相關性', desc:'是否緊扣學生的學習任務' },
+  { id:'safety', label:'安全感建立', desc:'是否讓學生感到被理解' },
+  { id:'adaptability', label:'個人化適應', desc:'是否針對這位學生量身回應' }
+];
+
+const RESPONSE_PROBLEMS = [
+  '回答太直接，沒有引導思考',
+  '回應太長難以閱讀',
+  '缺乏個人化',
+  '語氣太生硬',
+  '沒有具體步驟',
+  '過度鼓勵失去真實感',
+  '內容偏離學習任務'
+];
+
+const REVISION_TARGETS = [
+  '調整互動風格',
+  '加強任務引導',
+  '強化鼓勵機制',
+  '簡化回應結構',
+  '增加個人化元素',
+  '調整語氣溫度'
+];
+
+function renderStage3() {
+  const s = state.stage3;
+  document.getElementById('stage-container').innerHTML = `
+<div class="stage-header">
+  <div class="stage-num">關卡 3 ／ 4</div>
+  <div class="stage-title">品質測試站</div>
+  <div class="stage-meta">實際測試這位助教的回應品質並評估</div>
+  <div class="stage-badge">助教測試員</div>
+</div>
+
+<div class="card">
+  <div class="card-title">1. 設定測試情境</div>
+  <div class="card-sub">選擇一個情境，再填入測試內容</div>
+  <div class="chip-grid" id="s3-scenario">
+    ${TEST_SCENARIOS.map(sc => `<span class="chip-radio" data-val="${sc.id}">${sc.label}</span>`).join('')}
+  </div>
+  <div class="section-label">測試問題或情境描述</div>
+  <textarea id="s3-test-input" placeholder="例：我不知道這篇論文要從哪裡開始寫，完全沒有頭緒…">${esc(s.testInput)}</textarea>
+  <button class="btn btn-teal" style="margin-top:10px" onclick="generateTestResponse()">生成助教測試回應</button>
+</div>
+
+<div id="s3-response-section" class="${s.tutorTestResponse ? '' : 'hidden'}">
+  <div class="card">
+    <div class="card-title">2. 助教測試回應</div>
+    <div id="s3-response-out">
+      ${s.tutorTestResponse ? `<div class="output-card"><div class="output-label">助教回應</div><pre>${esc(s.tutorTestResponse)}</pre></div>` : ''}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">3. 評估回應品質</div>
+    <div class="card-sub">針對 8 個面向，拖曳滑桿給分（1 = 很差，5 = 很好）</div>
+    <div id="s3-sliders">
+      ${QUALITY_DIMS.map(d => `
+        <div class="slider-row">
+          <div class="slider-label-row">
+            <span>${d.label} <small style="color:var(--muted)">— ${d.desc}</small></span>
+            <span class="slider-val" id="sv-${d.id}">${s.qualityScores[d.id] || 3}</span>
+          </div>
+          <input type="range" min="1" max="5" step="1" value="${s.qualityScores[d.id] || 3}"
+            oninput="updateScore('${d.id}', this.value)">
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">4. 問題標記</div>
+    <div class="card-sub">這次回應有哪些不足之處？</div>
+    <div class="chip-grid" id="s3-problems">
+      ${RESPONSE_PROBLEMS.map(p => `<span class="chip" data-val="${p}">${p}</span>`).join('')}
+    </div>
+    <div class="section-label">標記需要修正的設定項目</div>
+    <div class="chip-grid" id="s3-revisions">
+      ${REVISION_TARGETS.map(r => `<span class="chip" data-val="${r}">${r}</span>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">5. 助教品質測試報告</div>
+    <button class="btn btn-teal" onclick="generateQualityReport()">生成品質測試報告</button>
+    <div id="s3-report-out" style="margin-top:12px"></div>
+    <div class="btn-row" id="s3-next-row" style="display:none">
+      <button class="btn btn-primary-lg" onclick="finishStage3()">確認並進入關卡 4</button>
+      <button class="btn btn-ghost" onclick="goToStage(2)">回關卡 2</button>
+    </div>
+  </div>
+</div>
+`;
+
+  chipSingle('s3-scenario', 'testScenario', 'stage3', null);
+  chipMulti('s3-problems', RESPONSE_PROBLEMS, state.stage3.responseProblems, () => {});
+  chipMulti('s3-revisions', REVISION_TARGETS, state.stage3.revisionTargets, () => {});
+
+  el('s3-test-input')?.addEventListener('input', e => { state.stage3.testInput = e.target.value; saveState(); });
+
+  if (state.stage3.tutorQualityReport) {
+    el('s3-report-out').innerHTML = `<div class="output-card"><div class="output-label">品質測試報告</div><pre>${esc(state.stage3.tutorQualityReport)}</pre></div>`;
+    el('s3-next-row').style.display = 'flex';
+  }
+}
+
+function updateScore(id, val) {
+  state.stage3.qualityScores[id] = parseInt(val);
+  state.stage3.scoresTouched = true;
+  el('sv-' + id).textContent = val;
+  saveState();
+}
+
+async function generateTestResponse() {
+  const input = el('s3-test-input').value.trim();
+  if (!input) { alert('請先填入測試問題。'); return; }
+  state.stage3.testInput = input;
+  saveState();
+
+  el('s3-response-section').classList.remove('hidden');
+  el('s3-response-out').innerHTML = '<div class="loading-row"><div class="spinner"></div><span>生成助教回應中…</span></div>';
+
+  const s1 = state.stage1;
+  const s2 = state.stage2;
+  const mode = WORK_MODES.find(m => m.id === s2.selectedWorkMode) || WORK_MODES[0];
+  const systemPrompt = buildSystemPromptCore();
+
+  let response = '';
+
+  if (state.llm.enabled) {
+    const result = await callLocalLLM('generateTutorTestResponse', {
+      messages: [
+        { role:'system', content: systemPrompt },
+        { role:'user', content: input }
+      ]
+    });
+    if (result.success) response = result.content;
+  }
+
+  if (!response) {
+    // 本地模擬回應
+    const scenario = state.stage3.testScenario;
+    if (scenario === 'start') {
+      response = `你說不知道從哪裡開始——這是個很正常的起點。\n\n我想先問你幾個問題，幫你找到第一步：\n1. 你對這個主題目前了解多少？\n2. 有沒有一個你覺得「這部分我有點感覺」的方向？\n3. 截止日期是什麼時候？\n\n先回答這三個問題，我們一起找到你的起點。`;
+    } else if (scenario === 'stuck') {
+      response = `卡住的感覺我很了解。我們來把這個卡點拆開看看。\n\n你說你卡在一個概念上——能告訴我是哪個概念嗎？是「不理解定義」、「理解了但不知道怎麼用」，還是「覺得這個概念和你的任務沒有關聯」？\n\n搞清楚卡在哪裡，我們才能找到最有效的方法往前走。`;
+    } else if (scenario === 'draft') {
+      response = `草稿完成是很大的進展！接下來我們一起讓它變得更好。\n\n先告訴我：你自己讀完這份草稿，覺得哪個部分「感覺不太對」或「還不夠好」？\n\n你的直覺通常是最準確的出發點，我們先從你自己發現的問題開始討論。`;
+    } else {
+      response = `我感覺到你現在有點挫折，這很正常——困難的任務本來就會讓人覺得累。\n\n先暫停一下。你能告訴我：現在最讓你頭痛的那一件事是什麼？就一件事就好。\n\n我們先把最大的那個石頭搬掉，其他的就會輕鬆很多。`;
+    }
+  }
+
+  state.stage3.tutorTestResponse = response;
+  saveState();
+  el('s3-response-out').innerHTML = `<div class="output-card"><div class="output-label">助教回應</div><pre>${esc(response)}</pre></div>`;
+}
+
+function generateQualityReport() {
+  const s = state.stage3;
+  const scores = s.qualityScores;
+  const avg = Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length;
+
+  const dimLines = QUALITY_DIMS.map(d => `  ${d.label}：${'★'.repeat(scores[d.id] || 3)}${'☆'.repeat(5 - (scores[d.id] || 3))}（${scores[d.id] || 3}/5）`).join('\n');
+  const problems = s.responseProblems.join('、') || '（無特別標記）';
+  const revisions = s.revisionTargets.join('、') || '（無需修正）';
+
+  let overallVerdict = '';
+  if (avg >= 4) overallVerdict = '助教品質良好，可進入發布流程';
+  else if (avg >= 3) overallVerdict = '助教基本達標，建議套用部分修正後發布';
+  else overallVerdict = '建議修正後再測試一次';
+
+  const report = `【助教品質測試報告】
+
+助教名稱：${state.home.tutorVersionName}
+測試情境：${TEST_SCENARIOS.find(s => s.id === state.stage3.testScenario)?.label || '（未選）'}
+
+─ 品質評分 ─
+${dimLines}
+
+平均分：${avg.toFixed(1)} / 5.0
+整體評估：${overallVerdict}
+
+─ 標記問題 ─
+${problems}
+
+─ 待修正項目 ─
+${revisions}`;
+
+  state.stage3.tutorQualityReport = report;
+  saveState();
+  el('s3-report-out').innerHTML = `<div class="output-card"><div class="output-label">品質測試報告</div><pre>${esc(report)}</pre></div>`;
+  el('s3-next-row').style.display = 'flex';
+}
+
+function finishStage3() {
+  completeStage(3);
+  goToStage(4);
+}
+
+/* ════════════════════════════════
+   STAGE 4 — 助教發布室
+   ════════════════════════════════ */
+function renderStage4() {
+  const s = state.stage4;
+  const revisions = state.stage3.revisionTargets;
+
+  document.getElementById('stage-container').innerHTML = `
+<div class="stage-header">
+  <div class="stage-num">關卡 4 ／ 4</div>
+  <div class="stage-title">助教發布室</div>
+  <div class="stage-meta">整合所有設計，生成並發布你的 AI 助教 v1.0</div>
+  <div class="stage-badge">助教發布設計師</div>
+</div>
+
+<div class="card">
+  <div class="card-title">1. 確認助教版本設定</div>
+  <div class="summary-grid">
+    <div class="summary-item"><div class="s-label">助教名稱</div><div class="s-val">${esc(state.home.tutorVersionName)}</div></div>
+    <div class="summary-item"><div class="s-label">主要任務</div><div class="s-val">${esc(state.home.taskTitle)}</div></div>
+    <div class="summary-item"><div class="s-label">學習輪廓</div><div class="s-val">${esc(state.stage1.learningProfile.slice(0,3).join('、'))}</div></div>
+    <div class="summary-item"><div class="s-label">工作模式</div><div class="s-val">${esc((WORK_MODES.find(m => m.id === state.stage2.selectedWorkMode) || WORK_MODES[0]).name)}</div></div>
+    <div class="summary-item"><div class="s-label">啟用模組</div><div class="s-val">${state.stage2.tutorModules.filter(m => m.enabled).length} 個</div></div>
+    <div class="summary-item"><div class="s-label">品質平均分</div><div class="s-val">${(Object.values(state.stage3.qualityScores).reduce((a,b)=>a+b,0)/8).toFixed(1)} / 5.0</div></div>
+  </div>
+</div>
+
+${revisions.length > 0 ? `
+<div class="card">
+  <div class="card-title">2. 套用品質測試修正</div>
+  <div class="card-sub">以下修正項目來自關卡 3，勾選後將反映在最終 Prompt 中</div>
+  <div class="chip-grid" id="s4-revisions">
+    ${revisions.map(r => `<span class="chip ${state.stage4.selectedRevisions.includes(r) ? 'selected' : ''}" data-val="${r}" onclick="toggleRevision('${r}', this)">${r}</span>`).join('')}
+  </div>
+</div>` : ''}
+
+<div class="card">
+  <div class="card-title">3. 生成助教 Prompt</div>
+  <button class="btn btn-teal" onclick="generateFinalPrompt()">生成 Prompt</button>
+  <div id="s4-prompt-out" style="margin-top:12px">
+    ${state.stage4.finalTutorPrompt ? renderPromptBox(state.stage4.finalTutorPrompt) : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">4. 生成助教互動 HTML</div>
+  <div class="card-sub">生成一個可以直接與助教對話的網頁，可下載離線使用。</div>
+  <button class="btn btn-teal" id="gen-html-btn" onclick="generateTutorHtml()">生成互動助教 HTML</button>
+  <div id="s4-html-out" style="margin-top:12px">
+    ${state.stage4.generatedTutorHtml ? '<div class="notice notice-ok">互動助教 HTML 已就緒，可從下方下載。</div>' : ''}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">5. 發布與下載</div>
+  <div class="card-sub">你的 AI 陪伴助教 v1.0 完成了！</div>
+  <div class="btn-row" style="flex-wrap:wrap">
+    <button class="btn btn-primary-lg" onclick="downloadPrompt()" id="dl-prompt-btn" ${!state.stage4.finalTutorPrompt ? 'disabled style="opacity:.5"' : ''}>複製 Prompt</button>
+    <button class="btn btn-primary-lg btn-green" onclick="downloadHtml()" id="dl-html-btn" ${!state.stage4.generatedTutorHtml ? 'disabled style="opacity:.5"' : ''}>下載助教 HTML</button>
+    <button class="btn btn-ghost" onclick="confirmRestart()">重新開始</button>
+  </div>
+  ${state.stage4.published ? `
+    <div class="achievement-box" style="margin-top:20px">
+      <div class="ach-title">助教發布設計師</div>
+      <div class="ach-sub">${esc(state.home.tutorVersionName)} v1.0 已成功發布！</div>
+    </div>` : ''}
+</div>
+`;
+}
+
+function toggleRevision(r, chip) {
+  const arr = state.stage4.selectedRevisions;
+  const i = arr.indexOf(r);
+  if (i >= 0) arr.splice(i, 1); else arr.push(r);
+  chip.classList.toggle('selected', arr.includes(r));
+  saveState();
+}
+
+function renderPromptBox(prompt) {
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--muted)">可直接複製貼入 LLM 對話框</span>
+      <button class="copy-btn" onclick="copyText(state.stage4.finalTutorPrompt, this)">複製 Prompt</button>
+    </div>
+    <div class="prompt-box">${esc(prompt)}</div>`;
+}
+
+function buildSystemPromptCore() {
+  const s1 = state.stage1;
+  const s2 = state.stage2;
+  const name = state.home.tutorVersionName;
+  const task = state.home.taskTitle;
+  const mode = WORK_MODES.find(m => m.id === s2.selectedWorkMode) || WORK_MODES[0];
+  const enabledModules = s2.tutorModules.filter(m => m.enabled);
+  const triggers = s2.moduleTriggers.filter(t => t.trigger && t.module);
+  const flow = s2.interactionFlow;
+
+  return `你是「${name}」，一位 AI 學習助教（版本 v1.0）。
+
+【學生狀態】
+學習輪廓：${[...s1.learningProfile, s1.learningProfileOther].filter(Boolean).join('、') || '一般大學生'}
+主要任務：${task}（${s1.taskDescription || s1.desiredOutcome || '學習任務'}）
+想加強能力：${[...s1.targetAbilities.filter(a => a!=='其他'), s1.targetAbilitiesOther].filter(Boolean).join('、') || '自主學習'}
+時間條件：每週 ${s1.weeklyAvailableTime || '彈性'}，偏好於${s1.preferredStudyTime.join('、') || '彈性時間'}使用
+
+【工作模式】
+${mode.name}：${mode.desc}
+
+【功能模組】
+${enabledModules.map((m, i) => `${i+1}. ${m.name} — ${m.desc}`).join('\n')}
+
+【模組啟動情境】
+${triggers.map(t => `當「${t.trigger}」→ 啟動《${t.module}》`).join('\n') || '依學生需求自動判斷'}
+
+【互動流程】
+${flow.map((step, i) => `步驟 ${i+1}：${step}`).join('\n')}
+
+【每次回應原則】
+1. 以提問引導思考，不直接給答案。
+2. 使用繁體中文（台灣用語），語氣溫暖自然。
+3. 回應長度適中，一次不超過三個問題。
+4. 針對學生的具體情境給出個人化回應。
+5. 確認理解後才進入下一步。
+6. 學生卡住時，先幫助釐清問題所在。
+7. 鼓勵學生記錄自己的思考歷程。
+8. 保持耐心，不催促。
+9. 每次對話結束前確認下一步行動。
+10. 遇到學生情緒低落時，先同理再引導。`;
+}
+
+function generateFinalPrompt() {
+  const base = buildSystemPromptCore();
+  const revisions = state.stage4.selectedRevisions;
+  const report = state.stage3.tutorQualityReport;
+  const scores = state.stage3.qualityScores;
+
+  let extra = '';
+  if (revisions.length) {
+    extra += `\n\n【已套用修正項目】\n${revisions.map(r => '• ' + r).join('\n')}`;
+    if (revisions.includes('調整互動風格')) extra += '\n→ 保持對話自然、避免制式化回應';
+    if (revisions.includes('加強任務引導')) extra += '\n→ 每次對話確認與學習任務的連結';
+    if (revisions.includes('強化鼓勵機制')) extra += '\n→ 在學生完成每個步驟時給予具體肯定';
+    if (revisions.includes('簡化回應結構')) extra += '\n→ 每次回應控制在 150 字以內';
+    if (revisions.includes('增加個人化元素')) extra += '\n→ 記住學生提過的細節並在回應中呼應';
+    if (revisions.includes('調整語氣溫度')) extra += '\n→ 使用輕鬆友善的語氣，避免過於正式';
+  }
+
+  if (report) {
+    const avg = Object.values(scores).reduce((a,b)=>a+b,0)/8;
+    extra += `\n\n【品質測試結果】\n平均分：${avg.toFixed(1)}/5.0`;
+  }
+
+  const fullPrompt = base + extra;
+  state.stage4.finalTutorPrompt = fullPrompt;
+  saveState();
+
+  el('s4-prompt-out').innerHTML = renderPromptBox(fullPrompt);
+  el('dl-prompt-btn').disabled = false;
+  el('dl-prompt-btn').style.opacity = '1';
+}
+
+function generateTutorHtml() {
+  if (!state.stage4.finalTutorPrompt) {
+    alert('請先生成 Prompt（步驟 3）。');
+    return;
+  }
+  el('gen-html-btn').disabled = true;
+  el('gen-html-btn').textContent = '生成中…';
+
+  const html = buildExportHtml();
+  state.stage4.generatedTutorHtml = html;
+  state.stage4.published = true;
+  completeStage(4);
+  saveState();
+
+  el('gen-html-btn').disabled = false;
+  el('gen-html-btn').textContent = '重新生成';
+  el('s4-html-out').innerHTML = '<div class="notice notice-ok">互動助教 HTML 已生成！請點「下載助教 HTML」儲存至電腦。</div>';
+  el('dl-html-btn').disabled = false;
+  el('dl-html-btn').style.opacity = '1';
+
+  // 顯示成就
+  renderStage4();
+}
+
+function buildExportHtml() {
+  const name = state.home.tutorVersionName || '我的助教';
+  const task = state.home.taskTitle || '學習任務';
+  const systemPrompt = state.stage4.finalTutorPrompt || buildSystemPromptCore();
+  const endpoint = state.llm.endpoint || 'https://shea-projectional-amal.ngrok-free.dev/v1';
+  const model = state.llm.model || 'llama3';
+  // 不烤入 API Key
+  const escapedPrompt = systemPrompt.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+
+  return `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(name)} — AI 學習助教</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--primary:#6c5ce7;--primary-dark:#5340c9;--teal:#16c2a3;--green:#23b26d;--border:#ddd8f8;--bg:#f0eeff;--muted:#6b6b80}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#f0eeff,#e8f4fd);min-height:100vh;display:flex;flex-direction:column}
+header{background:#fff;border-bottom:2px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:52px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(108,92,231,.08)}
+.hdr-title{font-size:15px;font-weight:700;color:var(--primary)}
+.hdr-sub{font-size:12px;color:var(--muted);flex:1}
+.hdr-btn{font-size:12px;padding:4px 10px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;color:var(--primary);font-weight:600;white-space:nowrap}
+.hdr-btn:hover{background:var(--bg)}
+#chat-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;max-width:720px;margin:0 auto;width:100%}
+.bubble{max-width:80%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.65;white-space:pre-wrap}
+.bubble-user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.bubble-ai{background:#fff;color:#2d2d3a;align-self:flex-start;border-bottom-left-radius:4px;border:1.5px solid var(--border);box-shadow:0 2px 8px rgba(108,92,231,.08)}
+.bubble-system{background:#f0eeff;color:var(--muted);align-self:center;font-size:12px;border-radius:9px;padding:6px 14px;text-align:center}
+.typing{display:flex;gap:4px;align-items:center;padding:8px 12px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:bounce .8s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-7px)}}
+#input-area{background:#fff;border-top:1.5px solid var(--border);padding:12px 16px;display:flex;gap:10px;max-width:720px;margin:0 auto;width:100%}
+#user-input{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:9px 14px;font-size:14px;font-family:inherit;resize:none;min-height:44px;max-height:120px;overflow-y:auto}
+#user-input:focus{outline:none;border-color:var(--primary)}
+#send-btn{background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:.15s}
+#send-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(108,92,231,.3)}
+#send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+/* 設定面板 */
+#settings-panel{display:none;position:fixed;top:58px;right:12px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;width:300px;z-index:20;box-shadow:0 8px 24px rgba(108,92,231,.16)}
+#settings-panel.open{display:block}
+#settings-panel h3{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:10px}
+.sp-row{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+.sp-row label{font-size:11px;color:var(--muted)}
+.sp-row input,.sp-row select{border:1.5px solid var(--border);border-radius:7px;padding:6px 8px;font-size:13px;width:100%}
+.sp-actions{display:flex;gap:8px}
+.sp-btn{font-size:12px;padding:5px 12px;border-radius:7px;border:none;cursor:pointer;font-weight:600}
+.sp-btn-primary{background:var(--primary);color:#fff}
+.sp-btn-ghost{background:#fff;border:1.5px solid var(--border);color:var(--primary)}
+#conn-status{font-size:12px;margin-top:8px;padding:6px;border-radius:6px}
+#conn-status.ok{background:#e8faf3;color:var(--green)}
+#conn-status.err{background:#fdecea;color:#e74c3c}
+/* 關於面板 */
+#about-panel{display:none;position:fixed;top:58px;right:12px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;width:300px;z-index:20;box-shadow:0 8px 24px rgba(108,92,231,.16);font-size:13px}
+#about-panel.open{display:block}
+#about-panel h3{font-size:13px;font-weight:700;color:var(--primary);margin-bottom:8px}
+#about-panel pre{white-space:pre-wrap;font-size:12px;color:#444;background:#f8f6ff;padding:10px;border-radius:7px;max-height:200px;overflow-y:auto}
+.close-btn{float:right;background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted);margin-top:-4px}
+@media(max-width:600px){.bubble{max-width:90%}#settings-panel,#about-panel{width:calc(100vw - 24px);right:12px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="hdr-title">${escHtml(name)}</div>
+    <div class="hdr-sub">AI 學習助教 · ${escHtml(task)}</div>
+  </div>
+  <button class="hdr-btn" onclick="toggleAbout()">關於助教</button>
+  <button class="hdr-btn" onclick="toggleSettings()">連線設定</button>
+</header>
+
+<div id="chat-area">
+  <div class="bubble bubble-system">你好！我是 ${escHtml(name)}，你的 AI 學習助教。<br>有什麼我可以幫你的嗎？</div>
+</div>
+
+<div id="input-area">
+  <textarea id="user-input" placeholder="輸入訊息… （Enter 送出，Shift+Enter 換行）" rows="1"></textarea>
+  <button id="send-btn" onclick="sendMessage()">送出</button>
+</div>
+
+<!-- 設定面板 -->
+<div id="settings-panel">
+  <h3>連線設定 <button class="close-btn" onclick="toggleSettings()">×</button></h3>
+  <div class="sp-row">
+    <label>API 端點</label>
+    <input type="text" id="sp-endpoint" value="${escHtml(endpoint)}">
+  </div>
+  <div class="sp-row">
+    <label>模型</label>
+    <input type="text" id="sp-model" value="${escHtml(model)}">
+  </div>
+  <div class="sp-row">
+    <label>API Key（選填）</label>
+    <input type="password" id="sp-apikey" placeholder="留空亦可">
+  </div>
+  <div class="sp-actions">
+    <button class="sp-btn sp-btn-primary" onclick="saveSettings()">儲存</button>
+    <button class="sp-btn sp-btn-ghost" onclick="testConnection()">測試連線</button>
+  </div>
+  <div id="conn-status"></div>
+</div>
+
+<!-- 關於面板 -->
+<div id="about-panel">
+  <h3>關於這位助教 <button class="close-btn" onclick="toggleAbout()">×</button></h3>
+  <p style="margin-bottom:8px">名稱：<strong>${escHtml(name)}</strong>（v1.0）<br>任務：${escHtml(task)}</p>
+  <button class="sp-btn sp-btn-ghost" style="margin-bottom:8px;font-size:12px" onclick="copyPrompt()">複製系統 Prompt</button>
+  <pre id="prompt-preview"></pre>
+</div>
+
+<script>
+const SYSTEM_PROMPT = \`${escapedPrompt}\`;
+let cfg = {
+  endpoint: localStorage.getItem('tutor_endpoint') || '${escHtml(endpoint)}',
+  model: localStorage.getItem('tutor_model') || '${escHtml(model)}',
+  apiKey: localStorage.getItem('tutor_apikey') || ''
+};
+const chatArea = document.getElementById('chat-area');
+let isThinking = false;
+
+function addBubble(text, role) {
+  const div = document.createElement('div');
+  div.className = 'bubble bubble-' + role;
+  div.textContent = text;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'bubble bubble-ai typing';
+  div.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  div.id = 'typing-indicator';
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+const history = [{ role:'system', content: SYSTEM_PROMPT }];
+
+async function sendMessage() {
+  if (isThinking) return;
+  const inp = document.getElementById('user-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+  addBubble(text, 'user');
+  history.push({ role:'user', content: text });
+  isThinking = true;
+  document.getElementById('send-btn').disabled = true;
+  addTyping();
+
+  try {
+    const ep = cfg.endpoint.replace(/\\/+$/, '');
+    const isOllama = ep.includes(':11434') || ep.includes('/api');
+    let url = isOllama ? ep + '/api/chat' : ep + '/chat/completions';
+    const headers = { 'Content-Type':'application/json', 'ngrok-skip-browser-warning':'true' };
+    if (cfg.apiKey) headers['Authorization'] = 'Bearer ' + cfg.apiKey;
+    const body = isOllama
+      ? { model: cfg.model, messages: history, stream: false }
+      : { model: cfg.model, messages: history, stream: false, temperature: 0.7 };
+    const resp = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const reply = isOllama ? (data.message?.content || '') : (data.choices?.[0]?.message?.content || '');
+    removeTyping();
+    addBubble(reply, 'ai');
+    history.push({ role:'assistant', content: reply });
+  } catch(e) {
+    removeTyping();
+    addBubble('連線失敗：' + e.message + '\\n\\n請點右上角「連線設定」確認端點與模型是否正確。', 'ai');
+  }
+
+  isThinking = false;
+  document.getElementById('send-btn').disabled = false;
+  inp.focus();
+}
+
+document.getElementById('user-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('user-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+function toggleSettings() {
+  document.getElementById('settings-panel').classList.toggle('open');
+  document.getElementById('about-panel').classList.remove('open');
+}
+function toggleAbout() {
+  const p = document.getElementById('about-panel');
+  p.classList.toggle('open');
+  document.getElementById('settings-panel').classList.remove('open');
+  if (p.classList.contains('open')) document.getElementById('prompt-preview').textContent = SYSTEM_PROMPT;
+}
+function saveSettings() {
+  cfg.endpoint = document.getElementById('sp-endpoint').value.trim();
+  cfg.model = document.getElementById('sp-model').value.trim();
+  cfg.apiKey = document.getElementById('sp-apikey').value.trim();
+  localStorage.setItem('tutor_endpoint', cfg.endpoint);
+  localStorage.setItem('tutor_model', cfg.model);
+  localStorage.setItem('tutor_apikey', cfg.apiKey);
+  setConnStatus('設定已儲存', 'ok');
+}
+async function testConnection() {
+  saveSettings();
+  setConnStatus('測試中…', '');
+  try {
+    const ep = cfg.endpoint.replace(/\\/+$/, '');
+    const isOllama = ep.includes(':11434') || ep.includes('/api');
+    let url = isOllama ? ep + '/api/chat' : ep + '/chat/completions';
+    const headers = { 'Content-Type':'application/json', 'ngrok-skip-browser-warning':'true' };
+    if (cfg.apiKey) headers['Authorization'] = 'Bearer ' + cfg.apiKey;
+    const body = isOllama
+      ? { model: cfg.model, messages:[{role:'user',content:'回覆OK兩個字'}], stream:false }
+      : { model: cfg.model, messages:[{role:'user',content:'回覆OK兩個字'}], stream:false };
+    const resp = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    setConnStatus('連線成功！', 'ok');
+  } catch(e) { setConnStatus('失敗：' + e.message, 'err'); }
+}
+function setConnStatus(msg, cls) {
+  const el = document.getElementById('conn-status');
+  el.className = 'conn-status ' + cls;
+  el.textContent = msg;
+}
+function copyPrompt() {
+  navigator.clipboard.writeText(SYSTEM_PROMPT).then(() => alert('已複製系統 Prompt！'));
+}
+<\/script>
+</body>
+</html>`;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function downloadPrompt() {
+  if (!state.stage4.finalTutorPrompt) { alert('請先生成 Prompt。'); return; }
+  copyText(state.stage4.finalTutorPrompt, el('dl-prompt-btn'));
+}
+
+function downloadHtml() {
+  if (!state.stage4.generatedTutorHtml) { alert('請先生成互動助教 HTML。'); return; }
+  const name = state.home.tutorVersionName || 'ai-tutor';
+  downloadFile(`${name}-v1.0.html`, state.stage4.generatedTutorHtml, 'text/html');
+}
+
+function confirmRestart() {
+  if (!confirm('確定要重新開始嗎？所有設定將清除（LLM 連線設定保留）。')) return;
+  const llmBackup = JSON.parse(JSON.stringify(state.llm));
+  state = JSON.parse(JSON.stringify(DEFAULTS));
+  state.llm = llmBackup;
+  saveState();
+  goToStage(0);
+}
+
+/* ════════════════════════════════
+   ESCAPE HELPERS
+   ════════════════════════════════ */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ════════════════════════════════
+   BOOT
+   ════════════════════════════════ */
+(async function init() {
+  loadState();
+  updateProgress();
+
+  // LLM 啟動自動偵測
+  try {
+    const ep = state.llm.endpoint.replace(/\/+$/, '');
+    const headers = { 'ngrok-skip-browser-warning': 'true' };
+    if (state.llm.apiKey) headers['Authorization'] = 'Bearer ' + state.llm.apiKey;
+    const resp = await fetch(ep + '/models', { headers });
+    if (resp.ok) {
+      const data = await resp.json();
+      const models = (data.data || data.models || []).map(m => m.id || m.name || m).filter(Boolean);
+      if (models.length && !state.llm.model) { state.llm.model = models[0]; saveState(); }
+      if (models.length) { state.llm.enabled = true; document.getElementById('llm-toggle-btn').classList.add('connected'); }
+    }
+  } catch(e) { /* 靜默失敗 */ }
+
+  // 若已有進行中的關卡則直接跳入
+  if (state.currentStage > 0) {
+    document.getElementById('home-screen').classList.add('hidden');
+    document.getElementById('stage-container').classList.remove('hidden');
+    renderCurrentStage();
+  } else {
+    document.getElementById('home-tutor-name').value = state.home.tutorVersionName;
+    document.getElementById('home-task-title').value = state.home.taskTitle;
+  }
+
+  // 點擊外部關閉 LLM 面板
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('llm-panel');
+    const btn = document.getElementById('llm-toggle-btn');
+    if (panel.classList.contains('open') && !panel.contains(e.target) && e.target !== btn) {
+      panel.classList.remove('open');
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

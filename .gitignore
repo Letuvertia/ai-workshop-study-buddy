@@ -1,0 +1,24 @@
+# 依賴與建置產物（可隨時重新產生）
+node_modules/
+dist/
+
+# 秘密與執行中資料（絕不進版本庫）
+.env
+.env*.local
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+study-buddy-reminder/data/*.db
+study-buddy-reminder/data/*.db-shm
+study-buddy-reminder/data/*.db-wal
+
+# 教材檔案與壓縮檔（不進程式碼版本庫）
+*.pdf
+materials_pdf/
+*.zip
+*:Zone.Identifier
+
+# 系統與暫存垃圾
+.DS_Store
+.fuse_hidden*
+nohup.out

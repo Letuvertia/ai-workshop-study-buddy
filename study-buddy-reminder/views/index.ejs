@@ -1,0 +1,430 @@
+<%- include('partials/header', { pageTitle: '數位學伴 — 個人 AI 學習助手' }) %>
+
+<div class="page-shell">
+
+  <!-- ══ Hero Section ══ -->
+  <section style="
+    display: grid;
+    grid-template-columns: 60fr 40fr;
+    gap: 48px;
+    align-items: center;
+    padding: 56px 0 64px;
+    position: relative;
+  " class="hero-grid">
+
+    <!-- Left Column -->
+    <div style="z-index:1;">
+      <div style="
+        display: inline-flex;
+        align-items: center;
+        background: var(--text-primary);
+        color: #fff;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: var(--r-pill);
+        margin-bottom: 20px;
+      ">個人 AI 學習助手</div>
+
+      <h1 style="
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1.25;
+        margin: 0 0 18px;
+        letter-spacing: -.02em;
+      ">今天想讓學伴<br>陪你完成什麼？</h1>
+
+      <p style="
+        color: var(--text-secondary);
+        font-size: 14px;
+        line-height: 1.75;
+        max-width: 460px;
+        margin: 0 0 32px;
+      ">告訴我你的任務、時間與習慣，我幫你拆解步驟，在對的時間提醒你。</p>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+        <button class="button button-primary button-lg" onclick="openChat()">與學伴對話</button>
+        <a href="#form-section" class="button button-secondary button-lg" style="text-decoration:none;">填寫表單</a>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0;">也可以先聊聊，再決定要做什麼</p>
+    </div>
+
+    <!-- Right Column -->
+    <div style="position:relative;display:flex;flex-direction:column;gap:14px;z-index:1;" class="hero-right">
+
+      <!-- Decorative blob -->
+      <div style="
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(ellipse at 40% 50%, rgba(116,185,255,.2) 0%, rgba(116,185,255,.08) 50%, transparent 100%);
+        filter: blur(80px);
+        z-index: 0;
+        top: -60px;
+        right: -40px;
+        pointer-events: none;
+      "></div>
+
+      <!-- Main mockup card -->
+      <div style="
+        background: var(--bg-card);
+        border-radius: var(--r-card);
+        box-shadow: var(--shadow-card);
+        padding: 18px 20px;
+        position: relative;
+        z-index: 1;
+      ">
+        <div style="
+          font-size: .72rem;
+          font-weight: 700;
+          color: #2563eb;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+          margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        "><span>🔔</span> 今日提醒</div>
+
+        <div style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:14px;">
+          初學平假名
+        </div>
+
+        <div style="height:1px;background:var(--border);margin-bottom:14px;"></div>
+
+        <div style="display:flex;flex-direction:column;gap:9px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);">
+            <span>🔧</span><span>YouTube · 手寫筆記</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);">
+            <span>⏰</span><span>今晚 19:00</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--text-secondary);">
+            <span style="margin-top:1px;">✅</span><span>完成 5 個假名筆記</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary card -->
+      <div style="
+        background: var(--bg-surface);
+        border-radius: var(--r-sm);
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--text-secondary);
+        position: relative;
+        z-index: 1;
+      ">
+        <span>📌</span>
+        <span>下一步：聽力練習入門 → 明天 19:00</span>
+      </div>
+
+    </div>
+  </section>
+
+  <style>
+    @media (max-width: 768px) {
+      .hero-grid { grid-template-columns: 1fr !important; padding: 32px 0 40px !important; gap: 32px !important; }
+      .hero-right { display: none !important; }
+      .hero-grid h1 { font-size: 28px !important; }
+    }
+  </style>
+
+  <!-- ══ Form Section ══ -->
+  <section id="form-section" style="padding-top:8px;">
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-error" style="margin-bottom:20px;">❌ <%= error %></div>
+    <% } %>
+
+    <form action="/plan" method="POST" id="taskForm">
+      <input type="hidden" name="tools" id="toolsHidden">
+      <input type="hidden" name="availableTime" id="availableTime">
+
+      <!-- ① 任務目標 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label">① 任務目標</div>
+        <div class="field-group">
+          <label for="taskName">任務名稱 <span style="color:#dc2626;">*</span></label>
+          <input type="text" id="taskName" name="taskName" required
+            placeholder="例如：AI 工作坊課程規劃、英文週報練習">
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+          <label for="taskContent">任務內容</label>
+          <textarea id="taskContent" name="taskContent" rows="3"
+            placeholder="請用一句話描述你想完成的事"></textarea>
+        </div>
+      </div>
+
+      <!-- ② 時間安排 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label">② 時間安排</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;" class="time-grid">
+
+          <!-- Left: 截止時間 -->
+          <div class="field-group" style="margin-bottom:0;">
+            <label for="deadline">截止時間</label>
+            <input type="datetime-local" id="deadline" name="deadline">
+            <p style="font-size:12px;color:var(--text-muted);margin:5px 0 0;">不填則建立一則 5 分鐘後的測試提醒</p>
+          </div>
+
+          <!-- Right: 可用時間 -->
+          <div class="field-group" style="margin-bottom:0;">
+            <label>可用時間安排</label>
+
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">頻率</div>
+              <div class="chip-grid">
+                <% [['每天','atF0'],['每週','atF1'],['不固定','atF2']].forEach(function(item){ %>
+                  <input type="radio" name="atFreq" id="<%= item[1] %>" value="<%= item[0] %>">
+                  <label for="<%= item[1] %>"><%= item[0] %></label>
+                <% }); %>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">偏好時段（可多選）</div>
+              <div class="chip-grid">
+                <% [['早上 6–12點','atT0','早上'],['下午 12–18點','atT1','下午'],['晚上 18–24點','atT2','晚上'],['時段彈性','atT3','時段彈性']].forEach(function(item){ %>
+                  <input type="checkbox" name="atTime" id="<%= item[1] %>" value="<%= item[2] %>">
+                  <label for="<%= item[1] %>"><%= item[0] %></label>
+                <% }); %>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">每次可用</div>
+              <div class="chip-grid">
+                <% [['15分','atD0'],['30分','atD1'],['1小時','atD2'],['2小時','atD3'],['3小時以上','atD4']].forEach(function(item){ %>
+                  <input type="radio" name="atDur" id="<%= item[1] %>" value="<%= item[0] %>">
+                  <label for="<%= item[1] %>"><%= item[0] %></label>
+                <% }); %>
+              </div>
+            </div>
+
+            <input type="text" id="availableTimeFree"
+              placeholder="補充說明，例如：早上習慣閱讀英文新聞"
+              style="font-size:13px;">
+            <p style="font-size:12px;color:var(--text-muted);margin:5px 0 0;">填寫後將一併提供給 AI 作為規劃參考</p>
+          </div>
+        </div>
+        <style>
+          @media (max-width: 640px) { .time-grid { grid-template-columns: 1fr !important; } }
+        </style>
+      </div>
+
+      <!-- ③ 任務類型 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label">③ 任務類型</div>
+        <div class="chip-grid">
+          <% [
+            ['課程作業','📝'],['語言學習','🗣️'],['研究閱讀','🔬'],['寫作','✍️'],
+            ['簡報','📊'],['程式','💻'],['行政','📋'],['生活安排','🏠'],['其他','📌']
+          ].forEach(function(item, i){ %>
+            <input type="radio" name="taskType" id="type_<%= i %>" value="<%= item[0] %>" <%= i===0 ? 'checked' : '' %>>
+            <label for="type_<%= i %>"><%= item[1] %> <%= item[0] %></label>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- ④ 可使用工具 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-label">④ 可使用工具（可多選）</div>
+        <div class="chip-grid" id="toolChips">
+          <% [
+            'ChatGPT','Perplexity','Codex','Google Docs','Google Sheets',
+            'Canva','Notion','Obsidian','YouTube','課堂講義','手寫筆記','番茄鐘'
+          ].forEach(function(tool, i){ %>
+            <input type="checkbox" name="toolsSelected" id="tool_<%= i %>" value="<%= tool %>">
+            <label for="tool_<%= i %>"><%= tool %></label>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- ⑤ 提醒偏好 -->
+      <div class="card" style="margin-bottom:32px;">
+        <div class="section-label">⑤ 提醒偏好</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;" class="remind-grid">
+
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;">希望提醒幾次</div>
+            <div class="chip-grid" style="margin-bottom:10px;">
+              <% [1,3,5,7,14,21].forEach(function(n){ %>
+                <input type="radio" name="reminderCount" id="count_<%= n %>" value="<%= n %>" <%= n===7 ? 'checked' : '' %>>
+                <label for="count_<%= n %>"><%= n %></label>
+              <% }); %>
+              <input type="radio" name="reminderCount" id="count_custom" value="" style="position:absolute;opacity:0;width:0;">
+              <label for="count_custom" id="count_custom_label" style="min-width:52px;">
+                <input type="number" id="customCountInput" min="1" max="60" placeholder="自訂"
+                  style="width:52px;border:none;background:transparent;font-size:14px;font-family:'Manrope',sans-serif;font-weight:500;outline:none;text-align:center;color:inherit;"
+                  oninput="handleCustomCount(this)"
+                  onclick="event.stopPropagation()">
+              </label>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0;">語言學習建議 7–21 次，讓提醒均勻分散在整個學習週期</p>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <input type="checkbox" id="needLine" name="needLine"
+                style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;flex-shrink:0;">
+              <label for="needLine" style="font-size:14px;font-weight:600;color:var(--text-primary);cursor:pointer;">需要 LINE 提醒</label>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);line-height:1.65;max-width:380px;margin:0;">
+              系統會依照截止時間與可用時間，均勻分配提醒。語言學習建議 7–21 次。
+            </p>
+          </div>
+        </div>
+        <style>
+          @media (max-width: 600px) { .remind-grid { grid-template-columns: 1fr !important; gap: 20px !important; } }
+        </style>
+      </div>
+
+      <!-- Submit -->
+      <div style="display:flex;align-items:center;gap:16px;padding-bottom:64px;">
+        <button type="submit" class="button button-primary button-lg" id="submitBtn">
+          產生任務規劃 →
+        </button>
+        <span id="loadingHint" style="display:none;font-size:13px;color:var(--text-secondary);">
+          ⏳ AI 規劃中，請稍候（約 10～30 秒）…
+        </span>
+      </div>
+
+    </form>
+  </section>
+
+</div><!-- /page-shell -->
+
+<!-- ══ Chat Widget ══ -->
+<div class="chat-overlay" id="chatOverlay" onclick="if(event.target===this)closeChat()"></div>
+
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-avatar">🤖</div>
+    <div class="chat-header-info">
+      <h3>數位學伴</h3>
+      <p>你的個人學習助理</p>
+    </div>
+    <button class="chat-close-btn" onclick="closeChat()">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-footer">
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chatInput" placeholder="輸入你的想法..." rows="2"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+      <button class="button button-primary button-sm" onclick="sendChatMessage()" id="chatSendBtn">送出</button>
+    </div>
+    <button class="button button-primary button-full" id="chatGenerateBtn" style="background:linear-gradient(135deg,#a29bfe,#6c5ce7);box-shadow:0 4px 12px rgba(108,92,231,.3);" onclick="generateFromChat()">
+      🚀 產生任務規劃
+    </button>
+    <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">聊聊你的需求，學伴幫你規劃</p>
+  </div>
+</div>
+
+<script>
+  // Chat
+  let chatMessages = [], chatReady = false;
+  function openChat() {
+    document.getElementById('chatOverlay').classList.add('open');
+    document.getElementById('chatPanel').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (!chatReady) { chatReady = true; initChat(); }
+  }
+  function closeChat() {
+    document.getElementById('chatOverlay').classList.remove('open');
+    document.getElementById('chatPanel').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function initChat() {
+    addBubble('assistant', '嗨！我是你的數位學伴 👋\n\n告訴我你最近想學什麼，或想完成什麼任務？什麼都可以說，我們一起想清楚。');
+  }
+  function addBubble(role, text) {
+    const msgs = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-bubble chat-bubble-' + role;
+    div.style.whiteSpace = 'pre-wrap';
+    div.textContent = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    if (role === 'assistant' || role === 'user') chatMessages.push({role, content: text});
+  }
+  function addLoading() {
+    const msgs = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'chat-bubble-loading'; div.id = 'chatLoading';
+    div.innerHTML = '<div class="chat-dot"></div><div class="chat-dot"></div><div class="chat-dot"></div>';
+    msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+  }
+  function removeLoading() { document.getElementById('chatLoading')?.remove(); }
+  async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    addBubble('user', text);
+    document.getElementById('chatSendBtn').disabled = true;
+    addLoading();
+    try {
+      const res = await fetch('/chat/message', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:chatMessages}) });
+      const data = await res.json();
+      removeLoading();
+      addBubble('assistant', data.reply || '抱歉，遇到問題。請稍後再試。');
+    } catch { removeLoading(); addBubble('assistant', '連線失敗，請確認 LLM API 是否正在執行。'); }
+    document.getElementById('chatSendBtn').disabled = false;
+    document.getElementById('chatInput').focus();
+  }
+  async function generateFromChat() {
+    if (chatMessages.filter(m=>m.role==='user').length===0) { alert('請先和學伴聊聊你的需求。'); return; }
+    const btn = document.getElementById('chatGenerateBtn');
+    btn.disabled = true; btn.textContent = '⏳ 規劃中...';
+    addBubble('assistant', '好的！讓我根據我們的討論，幫你生成一份任務規劃...');
+    try {
+      const res = await fetch('/chat/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:chatMessages}) });
+      const data = await res.json();
+      if (data.tempId) { window.location.href = '/confirm/' + data.tempId; }
+      else { addBubble('assistant', '生成失敗：' + (data.error||'未知錯誤')); btn.disabled=false; btn.textContent='🚀 產生任務規劃'; }
+    } catch { addBubble('assistant', '連線失敗。'); btn.disabled=false; btn.textContent='🚀 產生任務規劃'; }
+  }
+
+  // Form
+  function syncTools() {
+    const vals = [...document.querySelectorAll('input[name="toolsSelected"]:checked')].map(e=>e.value);
+    document.getElementById('toolsHidden').value = vals.join('、');
+  }
+  document.querySelectorAll('input[name="toolsSelected"]').forEach(cb => cb.addEventListener('change', syncTools));
+
+  function syncAvailableTime() {
+    const freq = document.querySelector('input[name="atFreq"]:checked')?.value || '';
+    const times = [...document.querySelectorAll('input[name="atTime"]:checked')].map(e=>e.value).filter(v=>v!=='時段彈性');
+    const dur = document.querySelector('input[name="atDur"]:checked')?.value || '';
+    const free = document.getElementById('availableTimeFree').value.trim();
+    const parts = [freq, times.join('、'), dur].filter(Boolean);
+    const combined = parts.join(' ');
+    document.getElementById('availableTime').value = free ? (combined ? combined+'；'+free : free) : combined;
+  }
+  document.querySelectorAll('input[name="atFreq"], input[name="atTime"], input[name="atDur"]').forEach(el => el.addEventListener('change', syncAvailableTime));
+  document.getElementById('availableTimeFree').addEventListener('input', syncAvailableTime);
+
+  function handleCustomCount(input) {
+    const val = parseInt(input.value);
+    if (!val || val < 1) return;
+    document.querySelectorAll('input[name="reminderCount"]').forEach(r => r.checked = false);
+    const cr = document.getElementById('count_custom');
+    cr.value = val; cr.checked = true;
+  }
+
+  document.getElementById('taskForm').addEventListener('submit', () => {
+    syncTools(); syncAvailableTime();
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('loadingHint').style.display = 'inline';
+  });
+</script>
+
+</body>
+</html>

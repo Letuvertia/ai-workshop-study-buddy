@@ -1,0 +1,91 @@
+import Database from 'better-sqlite3';
+import path from 'path';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// 確保資料夾存在
+const dbPath = path.resolve(process.env.DATABASE_URL || './data/app.db');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// 建立並開啟資料庫
+const db = new Database(dbPath);
+
+// 啟用 WAL 模式提升效能
+db.pragma('journal_mode = WAL');
+
+// =============================================
+// 建立資料表（如果不存在）
+// =============================================
+db.exec(`
+  -- 任務主表
+  CREATE TABLE IF NOT EXISTS tasks (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    name            TEXT    NOT NULL,
+    goal_description TEXT   NOT NULL,
+    deadline        TEXT    NOT NULL,
+    available_time  TEXT    NOT NULL,
+    task_type       TEXT    NOT NULL,
+    tools           TEXT    NOT NULL DEFAULT '[]',
+    need_line       INTEGER NOT NULL DEFAULT 0,
+    status          TEXT    NOT NULL DEFAULT 'pending',
+    ai_goal         TEXT    NOT NULL DEFAULT '',
+    ai_tools        TEXT    NOT NULL DEFAULT '[]',
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+  );
+
+  -- 任務步驟
+  CREATE TABLE IF NOT EXISTS steps (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id             INTEGER NOT NULL,
+    order_num           INTEGER NOT NULL,
+    title               TEXT    NOT NULL,
+    description         TEXT    NOT NULL DEFAULT '',
+    estimated_time      TEXT    NOT NULL DEFAULT '',
+    tool_suggestion     TEXT    NOT NULL DEFAULT '',
+    completion_criteria TEXT    NOT NULL DEFAULT '',
+    status              TEXT    NOT NULL DEFAULT 'pending',
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+  );
+
+  -- 提醒表
+  CREATE TABLE IF NOT EXISTS reminders (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id      INTEGER NOT NULL,
+    step_id      INTEGER,
+    remind_at    TEXT    NOT NULL,
+    message      TEXT    NOT NULL,
+    status       TEXT    NOT NULL DEFAULT 'pending',
+    enabled      INTEGER NOT NULL DEFAULT 1,
+    snooze_count INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (step_id) REFERENCES steps(id) ON DELETE SET NULL
+  );
+
+  -- LINE 狀態（記錄最後送出的提醒，用來處理使用者回覆）
+  CREATE TABLE IF NOT EXISTS line_state (
+    user_id          TEXT PRIMARY KEY,
+    last_reminder_id INTEGER,
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+  );
+
+  -- 課表（學生上傳課表圖片，AI 辨識後可修改再存進這裡）
+  CREATE TABLE IF NOT EXISTS courses (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT    NOT NULL,
+    day_of_week  TEXT    NOT NULL,
+    start_time   TEXT    NOT NULL,
+    end_time     TEXT    NOT NULL,
+    teacher      TEXT    NOT NULL DEFAULT '',
+    location     TEXT    NOT NULL DEFAULT '',
+    created_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+  );
+`);
+
+console.log(`✅ 資料庫已連線：${dbPath}`);
+
+export default db;

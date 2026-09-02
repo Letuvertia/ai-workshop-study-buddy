@@ -11,9 +11,6 @@ backend/data/*.db-shm
 backend/data/*.db-wal
 backend/data/static/
 backend/data/cliproxy-config.yaml
-study-buddy-reminder/data/*.db
-study-buddy-reminder/data/*.db-shm
-study-buddy-reminder/data/*.db-wal
 
 # 教材檔案與壓縮檔（不進程式碼版本庫）
 *.pdf

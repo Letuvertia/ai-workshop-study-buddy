@@ -35,24 +35,25 @@ ai-workshop-study-buddy/
 
 ## 🚀 快速開始 (Quick Start)
 
-### 前置需求
-電腦上**唯一需要預先安裝的環境**：
-- **Node.js 18+**（推薦安裝 LTS 版本）：[https://nodejs.org](https://nodejs.org)  
-  *安裝完成後，開啟終端機輸入 `node -v` 確認版本為 v18 或以上即可（npm 會隨 Node.js 一併安裝）。*
-
----
 
 ### 🍎 macOS / Linux 安裝與啟動步驟
 
 在專案根目錄開啟終端機，依序執行：
 
-#### 1. 安裝 Node.js（若尚未安裝）
-- 使用 Homebrew 安裝：
-  ```bash
+#### 1. 檢查並安裝 Node.js（若尚未安裝）
+```bash
+if command -v node &>/dev/null; then
+  echo "✅ Node.js 已安裝: $(node -v)"
+elif command -v brew &>/dev/null; then
   brew install node
-  ```
-  *(若電腦沒有 Homebrew，可至官網下載 macOS 安裝檔 `.pkg`：[https://nodejs.org](https://nodejs.org))*  
-  *安裝完成後輸入 `node -v` 確認版本（需 v18 以上）。*
+else
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  nvm install --lts
+fi
+node -v
+```
 
 #### 2. 安裝後端依賴與設定檔
 ```bash
@@ -81,15 +82,22 @@ npm run dev
 
 ### 🪟 Windows 安裝與啟動步驟
 
-在專案根目錄開啟 PowerShell 或 Terminal，依序執行：
+在專案根目錄開啟 PowerShell，依序執行：
 
-#### 1. 安裝 Node.js（若尚未安裝）
-- 使用 Windows 內建的套件管理員一鍵安裝：
-  ```powershell
-  winget install OpenJS.NodeJS.LTS
-  ```
-  *(若無 winget，可至官網下載 Windows 安裝檔 `.msi`：[https://nodejs.org](https://nodejs.org))*  
-  *安裝完成後請關閉並重新開啟終端機，輸入 `node -v` 確認版本（需 v18 以上）。*
+#### 1. 檢查並安裝 Node.js（若尚未安裝）
+```powershell
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Node.js 已安裝: $(node -v)"
+} elseif (Get-Command winget -ErrorAction SilentlyContinue) {
+    winget install OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+} else {
+    Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi" -OutFile "$env:TEMP\node.msi"
+    Start-Process msiexec.exe -ArgumentList "/i `"$env:TEMP\node.msi`" /quiet /norestart" -Wait
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+node -v
+```
 
 #### 2. 安裝後端依賴與設定檔
 ```powershell
@@ -97,7 +105,6 @@ cd backend
 npm install
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
-*(若使用傳統 Command Prompt / cmd，複製設定檔指令請改用 `if not exist .env copy .env.example .env`)*
 
 #### 3. 安裝前端依賴並打包
 ```powershell

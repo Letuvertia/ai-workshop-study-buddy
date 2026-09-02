@@ -2,7 +2,7 @@
 // api/aiSettings.ts — AI 模型設定的前端呼叫封裝
 // 對應後端 routes/aiSettings.ts。
 // =============================================
-import { AiConfig, AiKind, ClaudeAccountStatus, TestConnectionResult } from '../types/index.js';
+import { AiConfig, ClaudeAccountStatus, TestConnectionResult } from '../types/index.js';
 
 const BASE = '/api/ai';
 
@@ -26,9 +26,27 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-// 取得目前設定＋三個按鈕的預設值
-export async function getAiSettings(): Promise<{ current: AiConfig; presets: Record<AiKind, AiConfig> }> {
+// 取得目前設定＋三個按鈕的預設值＋供應商模型
+export async function getAiSettings(): Promise<{
+  current: AiConfig;
+  presets: Record<string, AiConfig>;
+  provider_models: Record<string, { id: string; name: string }[]>;
+  auth_status: Record<string, { logged_in: boolean; email?: string }>;
+}> {
   return request('/settings');
+}
+
+// 查詢 CLIProxyAPI 各供應商登入狀態
+export async function getCliProxyStatus(): Promise<Record<string, { logged_in: boolean; email?: string }>> {
+  return request('/cliproxy/status');
+}
+
+// 請求 CLIProxyAPI OAuth 登入授權網址
+export async function cliProxyLogin(provider: string): Promise<{ ok: boolean; auth_url: string; provider: string }> {
+  return request('/cliproxy/login', {
+    method: 'POST',
+    body: JSON.stringify({ provider }),
+  });
 }
 
 // 儲存設定
@@ -41,12 +59,12 @@ export async function testAiConnection(cfg: AiConfig): Promise<TestConnectionRes
   return request('/test', { method: 'POST', body: JSON.stringify(cfg) });
 }
 
-// 偵測本機 Claude Code 登入狀態
+// 偵測本機 Claude Code 登入狀態（相容舊版）
 export async function getClaudeAccount(): Promise<ClaudeAccountStatus> {
   return request('/claude_account');
 }
 
-// 開終端機跑 `claude auth login`
+// 開終端機跑 `claude auth login`（相容舊版）
 export async function claudeLogin(): Promise<{ ok: boolean; started: boolean; message: string }> {
   return request('/claude_login', { method: 'POST', body: JSON.stringify({}) });
 }

@@ -102,7 +102,7 @@ export type AppView = 'overview' | 'create' | 'confirm' | 'detail' | 'schedule';
 // =============================================
 // AI 模型設定（三按鈕：訂閱制 Claude／外部雲端／自建本地）
 // =============================================
-export type AiKind = 'subscription' | 'external' | 'local';
+export type AiKind = 'claude' | 'openai' | 'google' | 'subscription' | 'external' | 'local';
 
 export interface AiConfig {
   kind: AiKind;
@@ -118,6 +118,14 @@ export interface TestConnectionResult {
   message: string;
   sample: string;
 }
+
+export interface ProviderAuthStatus {
+  logged_in: boolean;
+  email?: string;
+  type?: string;
+}
+
+export type CliProxyAuthMap = Record<'claude' | 'openai' | 'google', ProviderAuthStatus>;
 
 export interface ClaudeAccountStatus {
   ok: boolean;

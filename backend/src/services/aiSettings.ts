@@ -12,21 +12,73 @@ import type { AiConfig } from '../types/index';
 const DATA_DIR = path.resolve(process.env.AI_SETTINGS_DIR || './data');
 const SETTINGS_PATH = path.join(DATA_DIR, 'ai-settings.json');
 
-// 三顆按鈕的預設值（語義固定：訂閱制／外部雲端／自建本地）
-export const PRESETS: Record<AiConfig['kind'], AiConfig> = {
+// 預設支援的模型選項（由 CLIProxyAPI 提供轉發）
+export const PROVIDER_MODELS: Record<string, { id: string; name: string }[]> = {
+  claude: [
+    { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet (推薦)' },
+    { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+    { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku (極速)' },
+    { id: 'claude-3-opus', name: 'Claude 3 Opus (高思考力)' },
+    { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (代理特化)' },
+    { id: 'claude-opus-4-6-thinking', name: 'Claude Opus 4.6 Thinking' },
+  ],
+  openai: [
+    { id: 'gpt-4o', name: 'GPT-4o (推薦)' },
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini (輕量快速)' },
+    { id: 'o1', name: 'o1 (深度推理)' },
+    { id: 'o3-mini', name: 'o3-mini (極速推理)' },
+    { id: 'gpt-oss-120b-medium', name: 'GPT-OSS 120B' },
+  ],
+  google: [
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (推薦)' },
+    { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (快速)' },
+    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
+    { id: 'gemini-3.7-flash-high', name: 'Gemini 3.7 Flash High' },
+    { id: 'gemini-3.6-flash-high', name: 'Gemini 3.6 Flash High' },
+    { id: 'gemini-3.1-pro-low', name: 'Gemini 3.1 Pro Low' },
+  ],
+};
+
+// 頂部按鈕預設值：訂閱制 Claude／訂閱制 OpenAI／訂閱制 Google AI Pro
+export const PRESETS: Record<string, AiConfig> = {
+  claude: {
+    kind: 'claude',
+    name: '訂閱制 Claude',
+    endpoint: 'http://localhost:8317/v1',
+    model_name: 'claude-3-7-sonnet',
+    api_key: '',
+    is_local: false,
+  },
+  openai: {
+    kind: 'openai',
+    name: '訂閱制 OpenAI',
+    endpoint: 'http://localhost:8317/v1',
+    model_name: 'gpt-4o',
+    api_key: '',
+    is_local: false,
+  },
+  google: {
+    kind: 'google',
+    name: '訂閱制 Google AI Pro',
+    endpoint: 'http://localhost:8317/v1',
+    model_name: 'gemini-2.5-pro',
+    api_key: '',
+    is_local: false,
+  },
+  // 保留舊版相容
   subscription: {
-    kind: 'subscription',
-    name: '訂閱制 Claude（CLIProxyAPI）',
+    kind: 'claude',
+    name: '訂閱制 Claude',
     endpoint: 'http://localhost:8317/v1',
     model_name: 'claude-3-7-sonnet',
     api_key: '',
     is_local: false,
   },
   external: {
-    kind: 'external',
+    kind: 'google',
     name: '外部雲端（Gemini）',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    model_name: 'gemini-3.1-flash-lite',
+    model_name: 'gemini-2.5-pro',
     api_key: '',
     is_local: false,
   },

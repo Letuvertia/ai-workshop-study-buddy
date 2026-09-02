@@ -23,7 +23,6 @@ export default function TaskForm({ onSubmit, loading }: Props) {
     available_time: '',
     task_type: '學習',
     tools: [],
-    need_line: false,
   });
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
@@ -168,18 +167,6 @@ export default function TaskForm({ onSubmit, loading }: Props) {
         )}
       </div>
 
-      {/* 是否需要 LINE 提醒 */}
-      <div className="field field-row">
-        <label className="toggle-label">
-          <input
-            type="checkbox"
-            checked={form.need_line}
-            onChange={e => handleChange('need_line', e.target.checked)}
-          />
-          <span>啟用 LINE 提醒</span>
-          <span className="hint-inline">（需先設定 LINE Bot）</span>
-        </label>
-      </div>
 
       <button type="submit" className="btn-primary" disabled={loading}>
         {loading ? (

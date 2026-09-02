@@ -1,6 +1,6 @@
 # 📚 數位學伴 — 個人任務規劃系統 (Digital Study Buddy)
 
-讓 AI 幫你拆解任務、安排時程，並透過 LINE 在對的時間發送提醒通知。  
+讓 AI 幫你拆解任務、安排時程與到點提醒。  
 本專案專為「AI 識能工作坊」設計，支援學生於 **Windows、macOS 與 Linux** 環境中搭配 **Claude Desktop Cowork 模式** 進行開發與使用。
 
 ---
@@ -11,7 +11,7 @@
 ai-workshop-study-buddy/
 ├── backend/                  # Express + TypeScript 後端
 │   ├── src/
-│   │   ├── routes/          # 任務 API (tasks.ts) 與 LINE Webhook (line.ts)
+│   │   ├── routes/          # 任務 API (tasks.ts) 與課表 API (schedule.ts)
 │   │   ├── services/        # AI 統一入口 (aiClient.ts)、排程器 (scheduler.ts)
 │   │   └── utils/           # 本地時間政策守門 (time.ts)
 │   ├── scripts/
@@ -114,27 +114,6 @@ npm run dev
 
 ---
 
-## 📱 LINE 提醒推播設定（選用）
-
-若需要啟用 LINE Bot 到點提醒功能：
-
-1. 到 [LINE Developers Console](https://developers.line.biz/console/) 建立 Messaging API Channel。
-2. 取得 **Channel Secret**、**Channel Access Token** 以及您的 **User ID**。
-3. 填入 `backend/.env`：
-   ```env
-   LINE_CHANNEL_SECRET=你的_channel_secret
-   LINE_CHANNEL_ACCESS_TOKEN=你的_access_token
-   LINE_USER_ID=你的_user_id
-   ```
-4. 若要接收使用者的 LINE 互動回覆（例如回「完成」、「延後30分鐘」）：
-   - 使用 [ngrok](https://ngrok.com) 穿透本地 Port 3000：
-     ```bash
-     ngrok http 3000
-     ```
-   - 將生成的 HTTPS URL 加上 `/webhook`（例如 `https://xxxx.ngrok-free.app/webhook`）填入 LINE Developers 的 Webhook URL 並開啟「Use webhook」。
-
----
-
 ## 💻 跨平台注意事項
 
 - **macOS / Linux**：
@@ -149,7 +128,7 @@ npm run dev
 ## 🧪 常用測試與驗證指令
 
 ```bash
-# 後端自動化回歸檢驗（包含型別檢查、測試伺服器、Webhook 簽章與排程器驗證）
+# 後端自動化回歸檢驗（包含型別檢查、測試伺服器、任務 API 整合與排程器驗證）
 cd backend
 npm run check
 

@@ -26,7 +26,7 @@ export interface Task {
   available_time: string;    // 文字描述，如「每天 2 小時」
   task_type: TaskType;
   tools: string;             // JSON 字串，存在 SQLite 裡
-  need_line: boolean;
+  need_line?: boolean;
   status: TaskStatus;
   ai_goal: string;           // AI 產生的任務目標
   ai_tools: string;          // AI 建議的工具，JSON 字串
@@ -52,7 +52,7 @@ export interface Reminder {
   task_id: number;
   step_id: number | null;
   remind_at: string;         // ISO 8601 格式
-  message: string;           // LINE 訊息內容
+  message: string;           // 提醒訊息內容
   status: ReminderStatus;
   enabled: number;           // SQLite 沒有 boolean，用 0/1
   snooze_count: number;
@@ -88,7 +88,7 @@ export interface GeneratePlanRequest {
   available_time: string;
   task_type: TaskType;
   tools: string[];
-  need_line: boolean;
+  need_line?: boolean;
 }
 
 // POST /api/tasks 的 request body（確認建立）
@@ -102,13 +102,6 @@ export interface TaskDetail {
   task: Task;
   steps: Step[];
   reminders: Reminder[];
-}
-
-// LINE 狀態（記錄最近一則提醒，用於解析回覆）
-export interface LineState {
-  user_id: string;
-  last_reminder_id: number;
-  updated_at: string;
 }
 
 // =============================================

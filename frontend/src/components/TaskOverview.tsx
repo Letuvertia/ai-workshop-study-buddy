@@ -167,9 +167,6 @@ export default function TaskOverview({ onViewDetail, onCreateNew, refreshTrigger
                   <span className="next-reminder">
                     🔔 {formatNextReminder(task.next_reminder)}
                   </span>
-                  {task.need_line ? (
-                    <span className="line-badge">LINE ✓</span>
-                  ) : null}
                 </div>
 
                 {/* 進度條 */}

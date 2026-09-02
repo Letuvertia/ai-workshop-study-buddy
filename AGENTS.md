@@ -7,7 +7,7 @@
 
 ## 1. System Overview & Architecture
 
-Digital Study Buddy is an AI-assisted task planning system: students input goals or schedules, AI generates breakdown steps and reminders, and the system delivers notifications via LINE Messaging API.
+Digital Study Buddy is an AI-assisted task planning system: students input goals or course schedules, and AI generates actionable breakdown steps and reminders.
 
 ```
 frontend/ (React + Vite, port 5173 / served from backend in single-server mode)
@@ -16,10 +16,10 @@ frontend/ (React + Vite, port 5173 / served from backend in single-server mode)
 backend/ (Express + TypeScript, port 3000)
     ├─ data/app.db            SQLite (better-sqlite3, WAL mode)
     ├─ data/ai-settings.json  Active AI configuration (configured via web UI)
-    ├─ services/scheduler     node-cron scanning reminders every minute
+    ├─ services/scheduler     node-cron scanning due reminders every minute
     ├─ services/aiClient      Unified AI gateway (OpenAI-compatible, Ollama, CLIProxyAPI)
     ├─ scripts/cliproxy-mgr   Automatic CLIProxyAPI supervisor (port 8317)
-    └─ routes/line            LINE webhook reply & push notifications
+    └─ routes/tasks           Task CRUD, step planning, and reminder endpoints
 ```
 
 ---
@@ -30,13 +30,10 @@ backend/ (Express + TypeScript, port 3000)
    - Database columns (`reminders.remind_at`, `tasks.deadline`) strictly store local ISO strings without timezone offsets (`YYYY-MM-DDTHH:MM[:SS]`).
    - Use `backend/src/utils/time.ts` (backend) and `frontend/src/utils/time.ts` (frontend).
    - **Never call `Date.prototype.toISOString()`** on these timestamps (causes UTC 8-hour shift bugs).
-2. **LINE Webhook Signature Verification**:
-   - HMAC-SHA256 must be calculated on the raw bytes stored in `req.rawBody` (configured via `express.json({ verify })` in `backend/src/index.ts`).
-   - Never re-read the request stream or use `JSON.stringify(req.body)` for verification.
-3. **Single AI Gateway**:
+2. **Single AI Gateway**:
    - All AI requests must pass through `backend/src/services/aiClient.ts`.
    - Supports local Ollama, cloud API keys, and local CLIProxyAPI (`http://localhost:8317/v1`) for Claude / OpenAI / Google subscriptions.
-4. **Cross-Platform Compatibility**:
+3. **Cross-Platform Compatibility**:
    - Target machines include Windows (native / WSL2), macOS, and Linux.
    - Do not introduce OS-specific shell commands, hardcoded POSIX/Windows paths, or native dependency upgrades without testing cross-platform implications.
 
@@ -50,7 +47,7 @@ backend/ (Express + TypeScript, port 3000)
      ```bash
      npm run check
      ```
-   - Must see `✅ 全部通過` (tsc check, test server boot, webhook signature validation, scheduler verification).
+   - Must see `✅ 全部通過` (tsc check, test server boot, task API test, scheduler verification).
 3. **Frontend Verification**:
    - After modifying `frontend/`, run `npm run build` in `frontend/` to update `frontend/dist/`.
    - The backend serves `frontend/dist` in single-server mode (`http://localhost:3000`).

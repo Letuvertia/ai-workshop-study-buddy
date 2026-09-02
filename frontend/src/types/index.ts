@@ -25,7 +25,7 @@ export interface Task {
   available_time: string;
   task_type: TaskType;
   tools: string;          // JSON 字串
-  need_line: boolean | number;
+  need_line?: boolean | number;
   status: TaskStatus;
   ai_goal: string;
   ai_tools: string;       // JSON 字串
@@ -87,7 +87,7 @@ export interface TaskFormData {
   available_time: string;
   task_type: TaskType;
   tools: string[];
-  need_line: boolean;
+  need_line?: boolean;
 }
 
 export interface TaskDetail {

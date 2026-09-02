@@ -92,7 +92,7 @@ const PROVIDERS: {
 }[] = [
   { key: 'claude', name: '訂閱制 Claude', renderIcon: (s = 22) => <ClaudeIcon size={s} /> },
   { key: 'openai', name: '訂閱制 OpenAI', renderIcon: (s = 22) => <OpenAIIcon size={s} /> },
-  { key: 'google', name: '訂閱制 Google AI Pro', renderIcon: (s = 22) => <GoogleIcon size={s} /> },
+  { key: 'google', name: '訂閱制 Google', renderIcon: (s = 22) => <GoogleIcon size={s} /> },
   { key: 'custom', name: '自訂模型端點', renderIcon: (s = 22) => <CustomIcon size={s} /> },
 ];
 
@@ -123,9 +123,9 @@ function Guide({ provider }: { provider: ProviderKey }) {
     return (
       <div className="provider-guide">
         <strong className="guide-title">
-          <GoogleIcon size={17} /> 訂閱制 Google AI Pro（透過 CLIProxyAPI）
+          <GoogleIcon size={17} /> 訂閱制 Google（透過 CLIProxyAPI）
         </strong>
-        <p>吃 Google One AI Premium 或 Gemini 方案額度，免 API Key。</p>
+        <p>吃你現有的 Google 訂閱方案額度（Plus / Pro），免 API Key。</p>
         <p>點選下方「連結帳號」完成授權，打通後將自動載入可用的模型選單。</p>
       </div>
     );

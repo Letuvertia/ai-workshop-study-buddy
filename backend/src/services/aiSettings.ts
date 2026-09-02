@@ -58,7 +58,7 @@ export const PRESETS: Record<string, AiConfig> = {
   },
   google: {
     kind: 'google',
-    name: '訂閱制 Google AI Pro',
+    name: '訂閱制 Google',
     endpoint: 'http://localhost:8317/v1',
     model_name: 'gemini-2.5-pro',
     api_key: '',

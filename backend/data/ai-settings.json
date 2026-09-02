@@ -1,6 +1,6 @@
 {
   "kind": "google",
-  "name": "訂閱制 Google AI Pro",
+  "name": "訂閱制 Google",
   "endpoint": "http://localhost:8317/v1",
   "model_name": "gemini-3.7-flash-high",
   "api_key": "",

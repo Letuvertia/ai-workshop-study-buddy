@@ -19,7 +19,7 @@ ai-workshop-study-buddy/
 │   ├── data/
 │   │   ├── app.db           # SQLite 本地資料庫（首次啟動自動建立）
 │   │   └── ai-settings.json # AI 模型設定檔（網頁面板即時寫入）
-│   └── .env.example         # 後端環境變數範本
+│   └── package.json
 │
 ├── frontend/                 # React + Vite 前端
 │   ├── src/
@@ -55,11 +55,10 @@ fi
 node -v
 ```
 
-#### 2. 安裝後端依賴與設定檔
+#### 2. 安裝後端依賴
 ```bash
 cd backend
 npm install
-cp -n .env.example .env
 ```
 
 #### 3. 安裝前端依賴並打包
@@ -99,11 +98,10 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 node -v
 ```
 
-#### 2. 安裝後端依賴與設定檔
+#### 2. 安裝後端依賴
 ```powershell
 cd backend
 npm install
-if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
 #### 3. 安裝前端依賴並打包

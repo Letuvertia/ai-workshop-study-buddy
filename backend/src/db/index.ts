@@ -1,11 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import dotenv from 'dotenv';
 
-dotenv.config();
-
-// 確保資料夾存在
+// 確保資料夾存在（預設 ./data/app.db）
 const dbPath = path.resolve(process.env.DATABASE_URL || './data/app.db');
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {

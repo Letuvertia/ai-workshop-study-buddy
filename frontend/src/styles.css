@@ -98,7 +98,8 @@ html {
 .nav-btn:hover { background: rgba(255,255,255,0.15); }
 .nav-active { background: rgba(255,255,255,0.25) !important; font-weight: 600; }
 
-.app-main {
+.app-main,
+.main-content {
   flex: 1;
   min-height: 0;
   height: calc(100vh - 56px);

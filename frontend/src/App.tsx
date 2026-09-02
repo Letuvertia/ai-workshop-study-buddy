@@ -212,8 +212,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* 主要內容區塊 */}
-      <main className="main-content">
+      {/* 主要內容區塊（左右留白，非滿版） */}
+      <main className="app-main">
         {error && (
           <div className="error-banner">
             <span>⚠️ {error}</span>

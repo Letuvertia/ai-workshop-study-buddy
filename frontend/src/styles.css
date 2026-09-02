@@ -354,14 +354,6 @@ body {
 
 .task-meta { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--gray-600); margin-bottom: 0.75rem; }
 .overdue { color: var(--danger); font-weight: 600; }
-.line-badge {
-  background: #06b46f;
-  color: white;
-  padding: 0.1rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
 
 .status-badge {
   padding: 0.2rem 0.7rem;

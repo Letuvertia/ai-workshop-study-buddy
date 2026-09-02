@@ -66,13 +66,6 @@ db.exec(`
     FOREIGN KEY (step_id) REFERENCES steps(id) ON DELETE SET NULL
   );
 
-  -- LINE 狀態（記錄最後送出的提醒，用來處理使用者回覆）
-  CREATE TABLE IF NOT EXISTS line_state (
-    user_id          TEXT PRIMARY KEY,
-    last_reminder_id INTEGER,
-    updated_at       TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
-  );
-
   -- 課表（學生上傳課表圖片，AI 辨識後可修改再存進這裡）
   CREATE TABLE IF NOT EXISTS courses (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -20,7 +20,6 @@ function buildPrompt(req: GeneratePlanRequest): string {
 目前可用時間：${req.available_time}
 任務類型：${req.task_type}
 可使用工具：${req.tools.join('、')}
-是否需要 LINE 提醒：${req.need_line ? '是' : '否'}
 
 【回覆要求】
 請務必以純 JSON 格式回覆，不要有任何說明文字、markdown 語法或程式碼區塊符號。
@@ -42,7 +41,7 @@ function buildPrompt(req: GeneratePlanRequest): string {
     {
       "remind_at": "ISO 8601 格式，例如：${getExampleReminderTime()}",
       "step_index": 0,
-      "message": "【任務提醒】\\n任務：${req.name}\\n現在要做：（步驟標題）\\n建議工具：（工具）\\n完成標準：（完成標準）\\n\\n你可以回覆：\\n完成 / 延後30分鐘 / 查看下一步"
+      "message": "【任務提醒】\\n任務：${req.name}\\n現在要做：（步驟標題）\\n建議工具：（工具）\\n完成標準：（完成標準）"
     }
   ]
 }
@@ -50,7 +49,7 @@ function buildPrompt(req: GeneratePlanRequest): string {
 注意事項：
 1. 步驟數量建議 3～7 個，根據任務複雜度決定
 2. 提醒時間要合理分散，考慮截止時間和可用時間
-3. 每個步驟都要有對應的提醒（如果使用者需要 LINE 提醒）
+3. 每個步驟都要有對應的提醒時間與具體提醒內容
 4. 提醒訊息要具體，包含任務名稱、步驟、工具和完成標準
 5. 所有時間格式必須是 ISO 8601（例如：2024-01-15T09:00:00）`;
 }

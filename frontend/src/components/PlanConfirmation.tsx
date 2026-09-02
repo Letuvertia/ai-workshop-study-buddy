@@ -133,10 +133,10 @@ export default function PlanConfirmation({ formData, plan, onConfirm, onBack, lo
         ))}
       </div>
 
-      {/* LINE 提醒（可編輯） */}
+      {/* 任務提醒（可編輯） */}
       {editedPlan.reminders.length > 0 && (
         <div className="section">
-          <h3>📱 LINE 提醒安排</h3>
+          <h3>⏰ 提醒時程安排</h3>
           <p className="hint">可以修改提醒時間和訊息，或取消某則提醒</p>
 
           {editedPlan.reminders.map((reminder, i) => {
@@ -173,7 +173,7 @@ export default function PlanConfirmation({ formData, plan, onConfirm, onBack, lo
                       />
                     </div>
                     <div className="field">
-                      <label>📩 LINE 訊息內容</label>
+                      <label>📝 提醒內容</label>
                       <textarea
                         value={reminder.message}
                         onChange={e => updateReminder(i, 'message', e.target.value)}

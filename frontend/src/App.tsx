@@ -141,7 +141,7 @@ export default function App() {
 
       {/* 頁腳 */}
       <footer className="app-footer">
-        <p>數位學伴 v1.0 · React + Node.js + SQLite + LINE</p>
+        <p>數位學伴 v1.0 · React + Node.js + SQLite</p>
       </footer>
     </div>
   );

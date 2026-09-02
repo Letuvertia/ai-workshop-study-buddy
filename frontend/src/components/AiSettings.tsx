@@ -238,7 +238,7 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
     }
   };
 
-  // 手動送出跳轉回呼網址（專門解決 WSL2 / 虛擬機端口轉發逾時）
+  // 手動送出跳轉回呼網址（若瀏覽器未自動跳轉）
   const handleManualCallback = async () => {
     if (!callbackInput.trim()) return;
     setSubmittingCallback(true);
@@ -355,9 +355,9 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
 
             {connecting && (
               <div className="callback-helper">
-                <div className="helper-title">💡 若授權完成後跳轉顯示「回應時間過長 (ERR_CONNECTION_TIMED_OUT)」：</div>
+                <div className="helper-title">💡 若授權完成後瀏覽器未自動返回：</div>
                 <div className="helper-desc">
-                  這是 WSL2 / 虛擬網路隔離所致（OAuth 授權已在 Google/Claude 成功完成）。請複製瀏覽器網址列那串 <code>http://localhost:51121/oauth-callback?...</code> 貼在下方：
+                  請複製瀏覽器網址列的授權跳轉網址（例如 <code>http://localhost:51121/oauth-callback?...</code>）貼在下方完成連結：
                 </div>
                 <div className="helper-input-row">
                   <input

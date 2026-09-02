@@ -1,7 +1,7 @@
 # AGENTS.md — Digital Study Buddy System Guide
 
 > **Audience**: AI Coding Agents (Claude Desktop Cowork mode, Claude Code, etc.) assisting students.
-> **Context**: This system is used by students across **Windows, macOS, and Linux** during the AI Literacy Workshop. Keep modifications minimal, portable, and stable.
+> **Context**: This system is used by students across **Windows, macOS, and Linux** during the NTU Sociology AI Workshop (台大社會系AI工作坊). Keep modifications minimal, portable, and stable.
 
 ---
 

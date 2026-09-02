@@ -84,6 +84,20 @@ router.post('/health_check', async (req: Request, res: Response) => {
     return res.status(400).json({ ok: false, error: '請輸入 API 端點網址' });
   }
 
+  // 針對訂閱制：必須確認該供應商已有已授權的 session 檔案
+  if (provider === 'claude' || provider === 'openai' || provider === 'google') {
+    const authMap = getCliProxyAuthStatus();
+    if (provider === 'claude' && !authMap.claude.logged_in) {
+      return res.status(400).json({ ok: false, error: '尚未登入 Claude 訂閱帳號（請先點擊上方「連結帳號」進行授權）' });
+    }
+    if (provider === 'openai' && !authMap.openai.logged_in) {
+      return res.status(400).json({ ok: false, error: '尚未登入 OpenAI 訂閱帳號（請先點擊上方「連結帳號」進行授權）' });
+    }
+    if (provider === 'google' && !authMap.google.logged_in) {
+      return res.status(400).json({ ok: false, error: '尚未登入 Google AI 訂閱帳號（請先點擊上方「連結帳號」進行授權）' });
+    }
+  }
+
   const modelsUrl = base.endsWith('/models') ? base : `${base}/models`;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

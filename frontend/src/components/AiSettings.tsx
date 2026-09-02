@@ -151,9 +151,12 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
       };
       setForm(initialForm);
 
-      // 如果不是自訂端點，自動檢查 CLIProxyAPI 是否有模型
-      if (validProvider !== 'custom') {
+      // 只有當該訂閱制已經登入授權，才執行 Health Check 載入模型；否則保持未通過狀態
+      if (validProvider !== 'custom' && data.auth_status?.[validProvider]?.logged_in) {
         checkEndpointHealth('http://localhost:8317/v1', '', validProvider);
+      } else {
+        setHealthPassed(false);
+        setLiveModels([]);
       }
     } catch {
       /* ignore */
@@ -172,6 +175,8 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
     setSelectedProvider(key);
     setResult(null);
     setHealthMessage(null);
+    setHealthPassed(false);
+    setLiveModels([]);
 
     const basePreset = presets?.[key] || {
       kind: key,
@@ -189,10 +194,8 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
       kind: key,
     });
 
-    if (key === 'custom') {
-      setHealthPassed(false);
-      setLiveModels([]);
-    } else {
+    // 只有在已登入狀態下才自動查詢模型
+    if (key !== 'custom' && authStatus[key]?.logged_in) {
       checkEndpointHealth('http://localhost:8317/v1', '', key);
     }
   };

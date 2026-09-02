@@ -1,0 +1,386 @@
+.task-steps-panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  min-height: 520px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow-y: auto;
+}
+
+.empty-panel {
+  display: grid;
+  place-items: center;
+  background: #fafafa;
+}
+
+.empty-panel-inner {
+  max-width: 440px;
+  text-align: center;
+  padding: 30px 20px;
+}
+
+.empty-icon {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.empty-panel-inner h3 {
+  font-size: 18px;
+  margin: 0 0 8px;
+  color: var(--gray-800, #1e293b);
+}
+
+.empty-panel-inner p {
+  font-size: 13px;
+  color: var(--gray-600, #475569);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.empty-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.feat-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.feat-text {
+  font-size: 12px;
+  color: var(--gray-700, #334155);
+  line-height: 1.4;
+}
+
+/* Header */
+.panel-header {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panel-task-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray-800, #1e293b);
+  line-height: 1.3;
+}
+
+.panel-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.panel-status-badge.completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.panel-status-badge.in_progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.panel-status-badge.pending {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.panel-task-goal {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gray-600, #475569);
+  line-height: 1.5;
+}
+
+.panel-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 10px;
+  color: var(--gray-500, #64748b);
+  font-weight: 500;
+}
+
+.meta-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-800, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.days-badge {
+  font-size: 10px;
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: normal;
+}
+
+.panel-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.progress-title {
+  color: var(--gray-600, #475569);
+  font-weight: 500;
+}
+
+.progress-num {
+  font-weight: 600;
+  color: var(--primary, #3b82f6);
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Body */
+.panel-body {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.section-title-row h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800, #1e293b);
+}
+
+.section-tip {
+  font-size: 11px;
+  color: var(--gray-500, #64748b);
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.step-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.step-card.step-done {
+  background: #f8fafc;
+  opacity: 0.8;
+}
+
+.step-card.step-done .step-title {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.step-checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.step-checkbox-wrapper input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--primary, #3b82f6);
+  cursor: pointer;
+}
+
+.step-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary, #3b82f6);
+  background: #eff6ff;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.step-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800, #1e293b);
+}
+
+.step-desc {
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: var(--gray-600, #475569);
+  line-height: 1.5;
+}
+
+.step-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.step-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: var(--gray-700, #334155);
+}
+
+.reminders-section {
+  border-top: 1px solid var(--border, #e2e8f0);
+  padding-top: 16px;
+}
+
+.reminders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reminder-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.reminder-card.reminder-disabled {
+  opacity: 0.5;
+}
+
+.reminder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reminder-time {
+  font-weight: 600;
+  color: var(--gray-800, #1e293b);
+}
+
+.reminder-msg {
+  color: var(--gray-600, #475569);
+}
+
+.reminder-toggle-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.reminder-toggle-btn.enabled {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.reminder-toggle-btn.disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+}

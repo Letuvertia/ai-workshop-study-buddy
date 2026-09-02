@@ -74,6 +74,17 @@ db.exec(`
     location     TEXT    NOT NULL DEFAULT '',
     created_at   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
   );
+
+  -- 任務對話紀錄（每個任務為一個獨立 session）
+  CREATE TABLE IF NOT EXISTS task_messages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id     INTEGER NOT NULL,
+    role        TEXT    NOT NULL,
+    content     TEXT    NOT NULL,
+    action_data TEXT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+  );
 `);
 
 console.log(`✅ 資料庫已連線：${dbPath}`);

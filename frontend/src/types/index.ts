@@ -96,8 +96,24 @@ export interface TaskDetail {
   reminders: Reminder[];
 }
 
+// 任務對話紀錄
+export interface TaskMessage {
+  id: number;
+  task_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  action_data?: string | null;
+  created_at: string;
+}
+
+export interface TaskChatResponse {
+  task_id: number;
+  reply: string;
+  task: TaskDetail;
+}
+
 // 頁面導覽狀態
-export type AppView = 'overview' | 'create' | 'confirm' | 'detail' | 'schedule';
+export type AppView = 'planner' | 'schedule';
 
 // =============================================
 // AI 模型設定（三按鈕：訂閱制 Claude／外部雲端／自建本地）

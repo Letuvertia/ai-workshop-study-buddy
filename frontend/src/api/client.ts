@@ -5,6 +5,8 @@ import {
   TaskFormData,
   Reminder,
   Step,
+  TaskMessage,
+  TaskChatResponse,
 } from '../types/index.js';
 
 // 後端 API 的基礎 URL（開發時透過 Vite proxy 轉發）
@@ -118,5 +120,25 @@ export async function updateReminder(
   await request(`/tasks/reminders/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
+  });
+}
+
+// =============================================
+// 對話 API（對話式任務規劃與修改）
+// =============================================
+
+// 取得指定任務的歷史對話
+export async function getTaskMessages(taskId: number): Promise<{ messages: TaskMessage[] }> {
+  return request<{ messages: TaskMessage[] }>(`/tasks/${taskId}/messages`);
+}
+
+// 發送訊息給 AI 規劃或修改任務
+export async function sendTaskChat(
+  message: string,
+  taskId?: number | null
+): Promise<TaskChatResponse> {
+  return request<TaskChatResponse>('/tasks/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message, task_id: taskId }),
   });
 }

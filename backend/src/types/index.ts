@@ -104,6 +104,27 @@ export interface TaskDetail {
   reminders: Reminder[];
 }
 
+// 任務對話訊息（每個任務獨立 Session）
+export interface TaskMessage {
+  id: number;
+  task_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  action_data?: string | null;
+  created_at: string;
+}
+
+export interface TaskChatRequest {
+  task_id?: number | null;
+  message: string;
+}
+
+export interface TaskChatResponse {
+  task_id: number;
+  reply: string;
+  task: TaskDetail;
+}
+
 // =============================================
 // AI 模型設定（三按鈕：訂閱制 Claude／外部雲端／自建本地）
 // =============================================

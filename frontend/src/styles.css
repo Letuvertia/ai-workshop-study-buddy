@@ -46,7 +46,7 @@ body {
 }
 
 .header-content {
-  max-width: 900px;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -75,10 +75,70 @@ body {
 
 .app-main {
   flex: 1;
-  max-width: 900px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
-  padding: 1.5rem 1rem;
+  padding: 16px 24px;
+}
+
+/* ─── Planner ChatGPT-Style Layout ─── */
+.planner-layout {
+  display: flex;
+  gap: 18px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.planner-workspace {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.schedule-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.schedule-view-header {
+  display: flex;
+  align-items: center;
+}
+
+.back-btn {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.back-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 1024px) {
+  .planner-layout {
+    flex-direction: column;
+  }
+  .task-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+  }
+  .planner-workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 .app-footer {

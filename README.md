@@ -7,28 +7,7 @@
 
 ## ✨ 核心功能特色
 
-### 1. 💬 對話式任務規劃與即時修改（類 ChatGPT 雙欄工作區）
-- **左側任務側邊欄（Task Sidebar）**：快速切換與管理所有歷史任務，支援「進行中／已完成」狀態篩選與一鍵刪除。
-- **左欄對話視窗（Task Chat）**：擺脫單次靜態表單！直接用自然對話告訴學伴你的學習目標、考試範圍或作業要求，AI 自動生成拆解步驟。
-- **右欄步驟看板（Task Steps Panel）**：即時視覺化顯示目標、截止時間、剩餘天數與每個執行步驟的建議工具與完成指標。
-- **即時雙向聯動**：在對話中隨時告訴 AI「步驟 1 完成了」、「截止日延後兩天」或「加一個整理考古題的步驟」，AI 自動操作 SQLite 資料庫並即時重新渲染右側看板！
-
-### 2. ⚡ 工業級 Context Management（1:1 複刻 Charm-Crush 記憶管理）
-完整移植業界開源頂級代理 **Charm Crush (OpenCode)** 的上下文壓縮架構，即使在單一任務中進行幾十輪長期對話，也能保持敏捷精確：
-- **動態上下文視窗閾值（Adaptive Threshold）**：根據當前模型（Claude 200k、GPT-4o 128k、Gemini 1M、Ollama 32k 等）動態計算剩餘空間，當抵達安全緩衝門檻（20,000 tokens 或 20%）時自動啟動後台滾動摘要。
-- **嚴格結構化摘要（`summary.md` 規格）**：將歷史上下文提煉為 5 大核心區塊（*Current State*、*Steps & Changes*、*Technical Context*、*Strategy & Student Context*、*Exact Next Steps*），杜絕空洞敘述。
-- **任務狀態與步驟注入（Todos Injection）**：摘要時自動注入最新步驟進度，指示接續模型持續追蹤。
-- **指針切片與角色重寫（Session Slicing & Role Rewriting）**：只保留從摘要開始的上下文，並將摘要角色轉寫為 `user`，API 請求自動拋棄舊歷史，前端完整保留歷史檢視。
-- **首尾安全截斷（Head-Tail Truncation）**：超長文字或工具輸出保留前 50% 與後 50%，中間省略為行數標記。
-- **確定性快取親和性（Cache Affinity Header）**：自動附加 `x-session-id` 與 `x-session-affinity`，極大化命中大模型 KV Cache。
-
-### 3. 📅 學期課表圖片 AI 辨識
-- 支援上傳課表截圖，後端自動調用 Vision 模型（Claude / GPT-4o / Gemini）辨識星期與節次。
-- 自動關聯至任務排程系統，避開上課時段安排自習時間。
-
-### 4. ⏰ 零時區誤差的本地提醒排程
-- 嚴格採用本地 ISO 時間（No Timezones 政策），杜絕 UTC+8 偏移 Bug。
-- `node-cron` 背景服務每分鐘比對到期提醒，準時觸發通知。
+本系統結合類 ChatGPT 的雙欄互動工作區與智慧任務規劃：使用者可透過左側側邊欄快速切換各項學習計畫，並直接在中央對話框以自然語言與 AI 共同釐清目標、拆解步驟、回報進度或調整期限，右側看板隨即自動同步資料庫最新步驟與排程提醒；系統同時整合學期課表截圖辨識避開上課時段、零時區誤差的本地定時提醒，並原生支援各大訂閱制 AI 方案（Claude、OpenAI、Google）免 API Key 直連與本機 Ollama 離線模型。
 
 ---
 
@@ -43,7 +22,7 @@ ai-workshop-study-buddy/
 │   │   │   ├── schedule.ts   # 課表圖片辨識與管理
 │   │   │   └── aiSettings.ts # AI 設定、健康檢查、CLIProxy 授權
 │   │   ├── services/
-│   │   │   ├── taskChat.ts   # 對話核心與 Crush Context Management 引擎
+│   │   │   ├── taskChat.ts   # 對話核心與上下文滾動管理服務
 │   │   │   ├── aiClient.ts   # 統一 AI 網關與快取親和性 Header
 │   │   │   ├── scheduler.ts  # node-cron 每分鐘定時排程器
 │   │   │   └── llm.ts        # 靜態規劃 fallback 服務
@@ -61,7 +40,7 @@ ai-workshop-study-buddy/
 │   ├── src/
 │   │   ├── components/
 │   │   │   ├── TaskSidebar.tsx    # 任務側邊欄（清單切換、狀態篩選、刪除）
-│   │   │   ├── TaskChat.tsx       # 對話框（自適應高度、Crush 摘要渲染）
+│   │   │   ├── TaskChat.tsx       # 對話框（自適應高度、上下文摘要渲染）
 │   │   │   ├── TaskStepsPanel.tsx # 步驟看板（進度條、狀態切換、提醒開關）
 │   │   │   ├── ScheduleUpload.tsx # 課表上傳與辨識檢視
 │   │   │   └── AiSettings.tsx     # 浮動 AI 設定面板（各大訂閱制/自訂端點）

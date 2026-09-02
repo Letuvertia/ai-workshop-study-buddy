@@ -1,7 +1,7 @@
 # 📚 數位學伴 — 個人任務規劃系統 (Digital Study Buddy)
 
-讓 AI 幫你拆解任務、安排時程與到點提醒。  
-本專案專為「AI 識能工作坊」設計，支援學生於 **Windows、macOS 與 Linux** 環境中搭配 **Claude Desktop Cowork 模式** 進行開發與使用。
+讓 AI 幫你拆解學習任務、安排具體步驟與到點提醒。  
+本專案專為「**台大社會系AI工作坊**」設計，支援學生於 **Windows、macOS 與 Linux** 環境中搭配 **Claude Desktop Cowork 模式** 進行協作與使用。
 
 ---
 
@@ -9,23 +9,23 @@
 
 ```
 ai-workshop-study-buddy/
-├── backend/                  # Express + TypeScript 後端
+├── backend/                  # Express + TypeScript 核心後端
 │   ├── src/
-│   │   ├── routes/          # 任務 API (tasks.ts) 與課表 API (schedule.ts)
+│   │   ├── routes/          # 任務規劃 API (tasks.ts) 與課表 API (schedule.ts)
 │   │   ├── services/        # AI 統一入口 (aiClient.ts)、排程器 (scheduler.ts)
 │   │   └── utils/           # 本地時間政策守門 (time.ts)
 │   ├── scripts/
 │   │   └── cliproxy-manager.js # CLIProxyAPI 本地代理管理腳本
 │   ├── data/
-│   │   ├── app.db           # SQLite 本地資料庫
-│   │   └── ai-settings.json # AI 模型設定檔 (網頁面板即時寫入)
+│   │   ├── app.db           # SQLite 本地資料庫（首次啟動自動建立）
+│   │   └── ai-settings.json # AI 模型設定檔（網頁面板即時寫入）
 │   └── .env.example         # 後端環境變數範本
 │
 ├── frontend/                 # React + Vite 前端
 │   ├── src/
-│   │   ├── components/      # 任務列表、建立表單、AI 設定面板 (AiSettings.tsx)
+│   │   ├── components/      # 任務列表、建立表單、課表辨識、AI 設定面板
 │   │   └── utils/           # 本地時間政策守門 (time.ts)
-│   └── dist/                # 前端靜態打包產物 (供單一伺服器模式直接供應)
+│   └── dist/                # 前端打包產物（供後端單一伺服器模式直接託管）
 │
 ├── AGENTS.md                 # AI 代理協作開發規範 (Claude Desktop Cowork 專用)
 └── README.md
@@ -35,40 +35,43 @@ ai-workshop-study-buddy/
 
 ## 🚀 快速開始 (Quick Start)
 
-### 1. 環境前置需求
-- **Node.js 18+**（建議安裝 LTS 版本）：[https://nodejs.org](https://nodejs.org)
-- **Git**
 
----
+### 🍎 macOS / Linux 安裝與啟動步驟
 
-### 2. 安裝步驟
+在專案根目錄開啟終端機，依序執行：
 
-#### 步驟 A：安裝後端依賴
+#### 1. 檢查並安裝 Node.js（若尚未安裝）
+```bash
+if command -v node &>/dev/null; then
+  echo "✅ Node.js 已安裝: $(node -v)"
+elif command -v brew &>/dev/null; then
+  brew install node
+else
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  nvm install --lts
+fi
+node -v
+```
+
+#### 2. 安裝後端依賴與設定檔
 ```bash
 cd backend
 npm install
-cp .env.example .env
+cp -n .env.example .env
 ```
-*(Windows 命令提示字元若無 `cp`，請用 `copy .env.example .env`)*
 
-#### 步驟 B：安裝並編譯前端
+#### 3. 安裝前端依賴並打包
 ```bash
 cd ../frontend
 npm install
 npm run build
 ```
 
----
-
-### 3. 啟動系統
-
-本專案支援**兩種啟動方式**：
-
-#### 🌟 方式一：單一伺服器模式（最推薦、最簡單）
-只需要開啟**一個終端機**，由後端直接同時供應 Web 介面與 API，並自動拉起本地 AI 代理服務：
-
+#### 4. 啟動系統
 ```bash
-cd backend
+cd ../backend
 npm run dev
 ```
 
@@ -77,62 +80,90 @@ npm run dev
 
 ---
 
-#### 🛠️ 方式二：雙伺服器即時熱重載開發模式（需大幅修改前端畫面時使用）
-需要開啟**兩個終端機視窗**：
+### 🪟 Windows 安裝與啟動步驟
 
-- **視窗 1（後端 API，Port 3000）**：
-  ```bash
-  cd backend
-  npm run dev
-  ```
-- **視窗 2（前端 Vite 即時熱重載，Port 5173）**：
-  ```bash
-  cd frontend
-  npm run dev
-  ```
+在專案根目錄開啟 PowerShell，依序執行：
 
-啟動後打開瀏覽器前往：  
-👉 **[http://localhost:5173](http://localhost:5173)**
+#### 1. 檢查並安裝 Node.js（若尚未安裝）
+```powershell
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    Write-Host "✅ Node.js 已安裝: $(node -v)"
+} elseif (Get-Command winget -ErrorAction SilentlyContinue) {
+    winget install OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+} else {
+    Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi" -OutFile "$env:TEMP\node.msi"
+    Start-Process msiexec.exe -ArgumentList "/i `"$env:TEMP\node.msi`" /quiet /norestart" -Wait
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+node -v
+```
 
----
-
-## ⚙️ AI 模型設定
-
-進入網頁後，點擊右下角「**⚙️ AI 模型**」按鈕，即可自由切換四種模型來源：
-
-1. **➕ 訂閱制模型（Claude / OpenAI / Google AI）**：
-   - 系統在啟動 `npm run dev` 時會自動在背景啟動 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)（Port 8317）。
-   - 點擊設定面板的登入授權按鈕，依照指引完成一次性登入即可直接調用您的訂閱模型額度，**完全不需輸入 API Key**！
-2. **🖥️ 本機模型（Ollama / LM Studio）**：
-   - 確保本機已啟動 Ollama（預設 `http://localhost:11434/v1/chat/completions`），資料完全不出電腦。
-3. **🟢 外部雲端 API**：
-   - 貼上您個人的 Google Gemini 或 OpenAI API Key 即可使用。
-4. **🌐 自訂端點**：
-   - 支援任何相容 OpenAI `/v1/chat/completions` 的 API 端點。
-
-*提示：設定完成後可點擊「連線檢查」，成功後系統會自動由端點動態載入可用模型清單供下拉選擇！*
-
----
-
-## 💻 跨平台注意事項
-
-- **macOS / Linux**：
-  - 原生執行 `npm run dev` 即可順暢透過 `http://localhost:3000` 連線。
-- **Windows (WSL2)**：
-  - 若在 WSL2 中使用，Windows 宿主機瀏覽器若遇到 `localhost` 連線問題，可直接在瀏覽器輸入 WSL 宿主機 IP 或在 `C:\Windows\System32\drivers\etc\hosts` 確認解析設定。
-- **前端修改注意事項**：
-  - 當您修改了 `frontend/src` 的前端程式碼後，若使用「單一伺服器模式（Port 3000）」，請記得在 `frontend/` 執行 `npm run build` 重新打包，Port 3000 才會更新顯示新畫面。
-
----
-
-## 🧪 常用測試與驗證指令
-
-```bash
-# 後端自動化回歸檢驗（包含型別檢查、測試伺服器、任務 API 整合與排程器驗證）
+#### 2. 安裝後端依賴與設定檔
+```powershell
 cd backend
-npm run check
+npm install
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
 
-# 前端型別檢查與打包建置
-cd frontend
+#### 3. 安裝前端依賴並打包
+```powershell
+cd ../frontend
+npm install
 npm run build
 ```
+
+#### 4. 啟動系統
+```powershell
+cd ../backend
+npm run dev
+```
+
+啟動後打開瀏覽器前往：  
+👉 **[http://localhost:3000](http://localhost:3000)**
+
+---
+
+## ⚙️ AI 模型連線設定
+
+打開網頁 [http://localhost:3000](http://localhost:3000) 後，點擊右下角「**⚙️ AI 模型**」按鈕，可自由切換模型來源：
+
+1. **➕ 訂閱制模型（Claude / OpenAI / Google AI）**：
+   - 適合擁有 Claude Pro、ChatGPT Plus 或 Google One AI 訂閱的同學。
+   - 點擊設定面板上的登入授權按鈕，在瀏覽器完成一次性授權即可，**完全不需要另外付費購買 API Key**！
+2. **🖥️ 本機模型（Ollama / LM Studio）**：
+   - 適合注重隱私或離線使用。
+   - 本機安裝並啟動 Ollama（預設 `http://localhost:11434/v1/chat/completions`）即可直接連線。
+3. **🟢 外部雲端 API**：
+   - 若您手邊有 Google Gemini、OpenAI 或 Anthropic 的 API Key，直接貼上即可使用。
+4. **🌐 自訂端點**：
+   - 支援任何相容 OpenAI 格式（`/v1/chat/completions`）的自建服務或校園 API 轉發站。
+
+*設定完成後點擊「連線檢查」，成功後系統會自動由端點動態拉取可用模型清單供下拉選擇！*
+
+---
+
+## 🛠️ 開發者雙終端即時熱重載模式（選用）
+
+如果您正在大幅度修改前端 React 畫面，希望存檔後瀏覽器自動即時刷新（HMR），可使用雙終端模式：
+
+- **終端機 1（後端 API，Port 3000）**：
+  ```bash
+  cd backend && npm run dev
+  ```
+- **終端機 2（前端 Vite 開發伺服器，Port 5173）**：
+  ```bash
+  cd frontend && npm run dev
+  ```
+啟動後打開瀏覽器前往：**[http://localhost:5173](http://localhost:5173)**。
+
+---
+
+## 🧪 自動化品質檢驗指令
+
+專案內建一鍵驗證腳本，修改程式碼後可隨時執行以確保系統穩定：
+
+```bash
+cd backend && npm run check
+```
+*(檢驗內容包含：TypeScript 型別檢查、暫存資料庫開機、任務 API 整合、本地時間排程器比對，需全數通過)*

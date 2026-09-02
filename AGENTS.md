@@ -10,7 +10,7 @@
 Digital Study Buddy is an AI-assisted task planning system: students input goals or course schedules, and AI generates actionable breakdown steps and reminders.
 
 ```
-frontend/ (React + Vite, port 5173 / served from backend in single-server mode)
+frontend/ (React + Vite, port 5173)
     │ HTTP (/api)
     ▼
 backend/ (Express + TypeScript, port 3000)
@@ -49,7 +49,6 @@ backend/ (Express + TypeScript, port 3000)
      ```
    - Must see `✅ 全部通過` (tsc check, test server boot, task API test, scheduler verification).
 3. **Frontend Verification**:
-   - After modifying `frontend/`, run `npm run build` in `frontend/` to update `frontend/dist/`.
-   - The backend serves `frontend/dist` in single-server mode (`http://localhost:3000`).
+   - Verify frontend runs with `npm run dev` (served on port 5173, proxies `/api` to backend on port 3000) or builds cleanly with `npm run build`.
 4. **Commit Standard**:
    - Commit with concise, descriptive messages explaining what was changed and why.

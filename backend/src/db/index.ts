@@ -77,15 +77,22 @@ db.exec(`
 
   -- 任務對話紀錄（每個任務為一個獨立 session）
   CREATE TABLE IF NOT EXISTS task_messages (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id     INTEGER NOT NULL,
-    role        TEXT    NOT NULL,
-    content     TEXT    NOT NULL,
-    action_data TEXT,
-    created_at  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id            INTEGER NOT NULL,
+    role               TEXT    NOT NULL,
+    content            TEXT    NOT NULL,
+    action_data        TEXT,
+    is_summary_message INTEGER DEFAULT 0,
+    created_at         TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
   );
 `);
+
+// Crush 架構：Context 滾動壓縮與 Token 追蹤欄位安全遷移
+try { db.exec('ALTER TABLE tasks ADD COLUMN summary_message_id INTEGER REFERENCES task_messages(id);'); } catch {}
+try { db.exec('ALTER TABLE tasks ADD COLUMN prompt_tokens INTEGER DEFAULT 0;'); } catch {}
+try { db.exec('ALTER TABLE tasks ADD COLUMN completion_tokens INTEGER DEFAULT 0;'); } catch {}
+try { db.exec('ALTER TABLE task_messages ADD COLUMN is_summary_message INTEGER DEFAULT 0;'); } catch {}
 
 console.log(`✅ 資料庫已連線：${dbPath}`);
 

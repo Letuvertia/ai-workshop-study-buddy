@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import db from '../db/index';
 import { generatePlan } from '../services/llm';
-import { handleTaskChat, getTaskMessages } from '../services/taskChat';
+import { handleTaskChat, getTaskMessages, executeSummarize } from '../services/taskChat';
 import {
   Task,
   Step,
@@ -45,6 +45,25 @@ router.get('/:id/messages', (req: Request, res: Response) => {
 
   const messages = getTaskMessages(id);
   return res.json({ messages });
+});
+
+// =============================================
+// POST /api/tasks/:id/summarize
+// Crush 架構：手動觸發結構化滾動摘要以壓縮 Context
+// =============================================
+router.post('/:id/summarize', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: '無效的任務 ID' });
+
+  try {
+    const summaryMessage = await executeSummarize(id);
+    return res.json({ summary: summaryMessage });
+  } catch (error: any) {
+    console.error('執行摘要壓縮失敗：', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : '未知錯誤',
+    });
+  }
 });
 
 // =============================================

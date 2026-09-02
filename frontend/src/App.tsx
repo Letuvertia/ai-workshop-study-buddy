@@ -9,6 +9,7 @@ import {
   getTask,
   getTaskMessages,
   sendTaskChat,
+  summarizeTask,
   updateStep,
   updateReminder,
   deleteTask,
@@ -175,6 +176,24 @@ export default function App() {
     }
   };
 
+  // Crush 架構：執行滾動摘要壓縮 Context
+  const handleSummarize = async () => {
+    if (!selectedTaskId || chatLoading) return;
+    setChatLoading(true);
+    setError('');
+    try {
+      await summarizeTask(selectedTaskId);
+      const msgRes = await getTaskMessages(selectedTaskId);
+      setMessages(msgRes.messages || []);
+      const updated = await getTask(selectedTaskId);
+      setTaskDetail(updated);
+    } catch (e: any) {
+      setError(e.message || '執行滾動摘要失敗');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   return (
     <div className="app">
       <AiSettings />
@@ -239,6 +258,7 @@ export default function App() {
                 taskName={taskDetail?.task?.name}
                 messages={messages}
                 onSendMessage={handleSendMessage}
+                onSummarize={handleSummarize}
                 loading={chatLoading}
               />
 

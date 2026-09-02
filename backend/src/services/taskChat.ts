@@ -1,15 +1,20 @@
 // =============================================
 // taskChat.ts — 對話式任務規劃與即時修改服務
 //
-// 每個任務都是一個 session，使用者能透過自然語言對話：
-// 1. 建立全新任務與步驟拆解
-// 2. 更新步驟狀態（完成、進行中）
-// 3. 增刪修改步驟與提醒
-// 4. 即時同步資料庫並由後端回傳最新 TaskDetail
+// 完整複刻 Charm Crush (OpenCode) 業界頂級 Context Management 架構：
+// 1. 動態 Context 視窗閾值監控 (Adaptive Context Window Threshold)
+//    - > 200k tokens 採用 20,000 token 安全緩衝
+//    - <= 200k tokens 採用 20% 安全緩衝
+// 2. 結構化滾動自動摘要 (Structured Auto-Summarization via summary.md 規格)
+// 3. 任務清單注入 (Task Steps as Todos Injection)
+// 4. 指針切片與角色重寫 (Session Slicing & Role Rewriting to 'user')
+// 5. 工具與對話輸出首尾截斷 (Head-Tail Truncation with line count)
+// 6. 提示詞快取與工作階段親和性 Header (x-session-id, x-session-affinity)
+// 7. 即時修改資料庫並無縫更新 TaskDetail
 // =============================================
 import db from '../db/index';
 import { getAiSettings } from './aiSettings';
-import { callOpenAICompatible } from './aiClient';
+import { callOpenAICompatibleWithUsage, sessionHeaders } from './aiClient';
 import { formatLocal } from '../utils/time';
 import {
   Task,
@@ -21,6 +26,102 @@ import {
   AiMessage,
   TaskType,
 } from '../types/index';
+
+// ── Crush 常數定義 (crush/internal/agent/agent.go) ─────────────────────────
+export const LARGE_CONTEXT_WINDOW_THRESHOLD = 200_000;
+export const LARGE_CONTEXT_WINDOW_BUFFER = 20_000;
+export const SMALL_CONTEXT_WINDOW_RATIO = 0.2;
+
+// ── Crush 模型 Context Window 判定 (crush/internal/agent/agent.go) ──────────
+export function getModelContextWindow(modelName: string): number {
+  const m = (modelName || '').toLowerCase();
+  if (
+    m.includes('claude-3-5') ||
+    m.includes('claude-3-7') ||
+    m.includes('claude-3-opus') ||
+    m.includes('claude-3-sonnet')
+  ) {
+    return 200_000;
+  }
+  if (m.includes('gpt-4o') || m.includes('o1') || m.includes('o3') || m.includes('gpt-4-turbo')) {
+    return 128_000;
+  }
+  if (m.includes('gemini-1.5') || m.includes('gemini-2.0') || m.includes('gemini-2.5')) {
+    return 1_000_000;
+  }
+  if (m.includes('deepseek')) {
+    return 64_000;
+  }
+  if (m.includes('llama') || m.includes('qwen') || m.includes('mistral') || m.includes('gemma')) {
+    return 32_768;
+  }
+  return 32_768; // 預設保守估計
+}
+
+// ── Crush 工具與大輸出首尾保留截斷 (crush/internal/agent/tools/bash.go:427) ──
+export function truncateOutput(content: string, maxOutputLength = 6000): string {
+  if (content.length <= maxOutputLength) {
+    return content;
+  }
+
+  const halfLength = Math.floor(maxOutputLength / 2);
+  const start = content.slice(0, halfLength);
+  const end = content.slice(content.length - halfLength);
+
+  const startNewlines = (start.match(/\n/g) || []).length;
+  const endNewlines = (end.match(/\n/g) || []).length;
+  const totalNewlines = (content.match(/\n/g) || []).length;
+  const truncatedLinesCount = Math.max(totalNewlines - startNewlines - endNewlines, 0);
+
+  return `${start}\n\n... [${truncatedLinesCount} lines truncated] ...\n\n${end}`;
+}
+
+// ── Crush 規格摘要系統提示詞 (crush/internal/agent/templates/summary.md) ──────
+export const SUMMARY_SYSTEM_PROMPT = `You are summarizing a conversation to preserve context for continuing work later.
+
+**Critical**: This summary will be the ONLY context available when the conversation resumes. Assume all previous messages will be lost. Be thorough.
+
+**Required sections**:
+
+## Current State
+- What task is being worked on (exact student goal)
+- Current progress and what has been completed
+- What is being worked on right now (in-progress work)
+- What remains to be done (specific next steps, not vague)
+
+## Steps & Changes
+- Steps that were created, modified, or completed
+- Important deadline, time, and scheduling constraints
+- Key steps not yet touched but will need changes
+
+## Strategy & Student Context
+- Learning habits, study pace, or constraints mentioned by the student
+- Tools, materials, or frameworks being used
+- What worked well and what failed or was delayed
+- Tone and preferences of the student
+
+## Exact Next Steps
+Be specific. Don't write "study for test" - write actionable items:
+1. Complete step #1 by reviewing chapters 1-3
+2. Practice with past midterm exams
+3. Review incorrect questions and formulas
+
+**Tone**: Write as if briefing a study coach/tutor taking over mid-task. Include everything they'd need to continue without asking questions. No emojis ever.
+
+**Length**: No limit. Err on the side of too much detail rather than too little. Critical context is worth the tokens.`;
+
+// ── Crush 任務清單提示詞建構 (crush/internal/agent/agent.go:2241) ───────────
+export function buildSummaryPrompt(steps: Step[]): string {
+  let text = 'Provide a detailed summary of our conversation above.';
+  if (steps && steps.length > 0) {
+    text += '\n\n## Current Step List\n\n';
+    for (const s of steps) {
+      text += `- [${s.status}] #${s.order_num} ${s.title} (預估: ${s.estimated_time || '未指定'})\n`;
+    }
+    text += '\nInclude these tasks and their statuses in your summary. Instruct the resuming assistant to continue tracking progress on these tasks.';
+  }
+  return text;
+}
 
 // 輔助函式：取得單一任務完整資訊
 export function getTaskDetail(id: number): TaskDetail | null {
@@ -38,11 +139,112 @@ export function getTaskDetail(id: number): TaskDetail | null {
   return { task, steps, reminders };
 }
 
-// 輔助函式：取得任務的歷史訊息
+// 輔助函式：取得任務的完整歷史訊息（前端 UI 呈現完整紀錄用）
 export function getTaskMessages(taskId: number): TaskMessage[] {
   return db
     .prepare('SELECT * FROM task_messages WHERE task_id = ? ORDER BY id ASC')
     .all(taskId) as TaskMessage[];
+}
+
+// ── Crush 指針切片與角色重寫 (crush/internal/agent/agent.go:1689-1708) ────────
+// 當 Session 存在 SummaryMessageID 時，丟棄摘要前的所有舊訊息，並將摘要訊息角色重寫為 'user'
+export function getSessionMessages(taskId: number): TaskMessage[] {
+  const msgs = db
+    .prepare('SELECT * FROM task_messages WHERE task_id = ? ORDER BY id ASC')
+    .all(taskId) as TaskMessage[];
+
+  const task = db
+    .prepare('SELECT summary_message_id FROM tasks WHERE id = ?')
+    .get(taskId) as { summary_message_id: number | null } | undefined;
+
+  if (task && task.summary_message_id) {
+    const summaryIdx = msgs.findIndex((m) => m.id === task.summary_message_id);
+    if (summaryIdx !== -1) {
+      // 切片：只保留從摘要訊息開始（包含摘要自身）的後續對話
+      const sliced = msgs.slice(summaryIdx);
+      if (sliced.length > 0) {
+        // Crush 關鍵機制：將 Assistant 摘要轉寫為 User 角色，作為新上下文的基底！
+        sliced[0] = {
+          ...sliced[0],
+          role: 'user',
+        };
+      }
+      return sliced;
+    }
+  }
+
+  return msgs;
+}
+
+// ── Crush 執行結構化摘要 (crush/internal/agent/agent.go:1329-1463) ───────────
+export async function executeSummarize(taskId: number): Promise<TaskMessage> {
+  const currentTask = getTaskDetail(taskId);
+  if (!currentTask) throw new Error(`找不到任務 ID ${taskId}`);
+
+  const allMsgs = db
+    .prepare('SELECT * FROM task_messages WHERE task_id = ? ORDER BY id ASC')
+    .all(taskId) as TaskMessage[];
+
+  if (allMsgs.length === 0) {
+    throw new Error('尚無對話紀錄可進行摘要');
+  }
+
+  const cfg = getAiSettings();
+  const summaryPromptText = buildSummaryPrompt(currentTask.steps);
+
+  // 組裝歷史訊息給摘要模型（含 System Prompt）
+  const summaryInputMsgs: AiMessage[] = [
+    { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+    ...allMsgs.map((m) => ({
+      role: (m.role === 'system' ? 'system' : m.role === 'assistant' ? 'assistant' : 'user') as
+        | 'system'
+        | 'assistant'
+        | 'user',
+      content: truncateOutput(m.content, 4000),
+    })),
+    { role: 'user', content: summaryPromptText },
+  ];
+
+  console.log(`📝 [Crush Context] 開始執行任務 #${taskId} 的結構化滾動摘要...`);
+  const result = await callOpenAICompatibleWithUsage(cfg, summaryInputMsgs, {
+    timeoutMs: 90_000,
+    headers: sessionHeaders(taskId),
+  });
+
+  const summaryContent = result.content.trim();
+  const completionTokens =
+    result.usage?.completion_tokens || Math.ceil(summaryContent.length / 3.5);
+
+  // 寫入摘要訊息至 task_messages (is_summary_message = 1)
+  const insertRes = db
+    .prepare(`
+      INSERT INTO task_messages (task_id, role, content, action_data, is_summary_message)
+      VALUES (?, 'assistant', ?, NULL, 1)
+    `)
+    .run(taskId, summaryContent);
+
+  const summaryMessageId = insertRes.lastInsertRowid as number;
+
+  // 重設 Session 狀態指針與 Token 記數（完全比照 Crush 做法）
+  db.prepare(`
+    UPDATE tasks
+    SET summary_message_id = ?,
+        completion_tokens = ?,
+        prompt_tokens = 0
+    WHERE id = ?
+  `).run(summaryMessageId, completionTokens, taskId);
+
+  console.log(`✅ [Crush Context] 摘要完成！SummaryMessageID: ${summaryMessageId}, 重設 Token: ${completionTokens}`);
+
+  return {
+    id: summaryMessageId,
+    task_id: taskId,
+    role: 'assistant',
+    content: summaryContent,
+    action_data: null,
+    is_summary_message: 1,
+    created_at: formatLocal(new Date()),
+  };
 }
 
 // 建立 System Prompt
@@ -98,153 +300,186 @@ function buildSystemPrompt(currentTask: TaskDetail | null): string {
     {
       "remind_at": "${tomorrowStr}",
       "step_index": 0,
-      "message": "【數位學伴提醒】記得開始執行：步驟 1 標題！"
+      "message": "該開始進行步驟 1 囉！"
     }
   ]
 }
 \`\`\`
-注意：\`\`\`action 區塊中的內容必須是合法 JSON，且不要在 JSON 內部加註解。`;
+請確保輸出的 JSON 格式絕對合法。`;
   }
 
-  const taskSummary = {
-    id: currentTask.task.id,
-    name: currentTask.task.name,
-    goal_description: currentTask.task.goal_description,
-    deadline: currentTask.task.deadline,
-    available_time: currentTask.task.available_time,
-    task_type: currentTask.task.task_type,
-    status: currentTask.task.status,
-    steps: currentTask.steps.map((s) => ({
-      id: s.id,
-      order_num: s.order_num,
-      title: s.title,
-      description: s.description,
-      estimated_time: s.estimated_time,
-      tool_suggestion: s.tool_suggestion,
-      completion_criteria: s.completion_criteria,
-      status: s.status,
-    })),
-    reminders: currentTask.reminders.map((r) => ({
-      id: r.id,
-      step_id: r.step_id,
-      remind_at: r.remind_at,
-      message: r.message,
-      enabled: Boolean(r.enabled),
-    })),
-  };
+  // 現有任務模式：AI 隨時可根據學生對話修改任務屬性、步驟與提醒
+  const { task, steps, reminders } = currentTask;
+  const currentTaskStateJson = JSON.stringify(
+    {
+      id: task.id,
+      name: task.name,
+      goal: task.goal_description,
+      deadline: task.deadline,
+      available_time: task.available_time,
+      task_type: task.task_type,
+      status: task.status,
+      steps: steps.map((s) => ({
+        id: s.id,
+        order: s.order_num,
+        title: s.title,
+        description: s.description,
+        estimated_time: s.estimated_time,
+        tool_suggestion: s.tool_suggestion,
+        completion_criteria: s.completion_criteria,
+        status: s.status,
+      })),
+      reminders: reminders.map((r) => ({
+        id: r.id,
+        remind_at: r.remind_at,
+        message: r.message,
+        enabled: Boolean(r.enabled),
+        status: r.status,
+      })),
+    },
+    null,
+    2
+  );
 
-  return `你是一個專業、親切的任務規劃夥伴（數位學伴）。
+  return `你是一個專業、親切的任務規劃教練（數位學伴）。
 目前台灣本地時間是：${nowStr}。
 
-【目前正在進行的任務資料（即時資料庫狀態）】
+你目前正在陪伴學生進行任務「${task.name}」的跟進與持續規劃。
+目前資料庫中此任務的最新即時狀態如下：
 \`\`\`json
-${JSON.stringify(taskSummary, null, 2)}
+${currentTaskStateJson}
 \`\`\`
 
-【角色與職責】
-使用者正在與你就這個任務進行對話。他可能回報進度、調整截止日、增減步驟或調整提醒。
+【你的職責與強大能力】
+學生會在對話中向你回報進度、要求修改任務名稱或截止時間、要求增刪或調整步驟、或是要求打勾完成某個步驟。
+你擁有「直接操作資料庫」的能力！請在你的自然語言回覆後方，附上對應的 \`\`\`action ... \`\`\` 區塊，後端會精確執行你的指令並即時同步給學生。
 
-【資料庫修改權力（Action 機制）】
-當對話需要修改任務內容或步驟進度時，請在回覆文字的最後面附帶一個 \`\`\`action ... \`\`\` JSON 區塊。後端會自動攔截並即時同步修改資料庫！
-支援的操作包含：
-
-1. 標記步驟狀態：
+【可用的 Action 類型】
+1. 標記步驟完成/待處理：
 \`\`\`action
-{ "action": "set_step_status", "order_num": 1, "status": "completed" }
+{
+  "action": "set_step_status",
+  "step_id": 步驟ID,
+  "status": "completed" 或 "pending"
+}
 \`\`\`
-（status 可為 "completed"、"in_progress"、"pending"）
 
-2. 修改任務基本資料：
+2. 修改任務基本資訊（截止日、可用時間、目標）：
 \`\`\`action
-{ "action": "update_task", "deadline": "${nextWeekStr}", "status": "in_progress" }
+{
+  "action": "update_task",
+  "deadline": "2026-09-15T23:59:00",
+  "available_time": "每天1.5小時"
+}
 \`\`\`
 
-3. 新增步驟：
+3. 新增單一步驟：
 \`\`\`action
 {
   "action": "add_step",
   "title": "新步驟標題",
-  "description": "內容說明",
-  "estimated_time": "1小時",
-  "tool_suggestion": "工具",
-  "completion_criteria": "完成標準",
-  "insert_after_order": 2
+  "description": "步驟內容",
+  "estimated_time": "40分鐘",
+  "tool_suggestion": "Google Docs",
+  "completion_criteria": "完成初稿"
 }
 \`\`\`
 
-4. 修改步驟：
+4. 編輯既有步驟：
 \`\`\`action
 {
   "action": "update_step",
-  "order_num": 2,
+  "step_id": 步驟ID,
   "title": "修改後的標題",
-  "description": "修改後的說明"
+  "estimated_time": "1小時"
 }
 \`\`\`
 
 5. 刪除步驟：
 \`\`\`action
-{ "action": "delete_step", "order_num": 2 }
+{
+  "action": "delete_step",
+  "step_id": 步驟ID
+}
 \`\`\`
 
-6. 全面重新規劃所有步驟與提醒：
+6. 全面重新規劃所有步驟（replan）：
 \`\`\`action
 {
   "action": "replan_steps",
-  "steps": [ ... ],
-  "reminders": [ ... ]
+  "steps": [
+    {
+      "title": "重整後步驟1",
+      "description": "...",
+      "estimated_time": "30分鐘",
+      "tool_suggestion": "...",
+      "completion_criteria": "..."
+    }
+  ]
 }
 \`\`\`
 
-7. 新增提醒：
+7. 新增或更新提醒：
 \`\`\`action
-{ "action": "add_reminder", "remind_at": "${tomorrowStr}", "message": "提醒文字" }
+{
+  "action": "add_reminder",
+  "remind_at": "2026-09-10T09:00:00",
+  "message": "提醒：明天就要交報告囉！"
+}
 \`\`\`
 
-8. 刪除提醒：
-\`\`\`action
-{ "action": "delete_reminder", "reminder_id": 1 }
-\`\`\`
-
-【重要規則】
-- 若對話只是純討論或解答問題、不需要更動資料庫，請不要輸出 \`\`\`action 區塊。
-- 所有的時間欄位必須是本地無時區格式（YYYY-MM-DDTHH:MM:SS）。
-- 回覆文字要友善自然，清楚說明你做了哪些更新。`;
+【回覆準則】
+1. 請以正向、鼓勵且具體的口吻與學生交談。
+2. 若學生表示「步驟1做完了」，除了讚賞他的努力，請務必在結尾附上 set_step_status action 將該步驟標記為 completed！
+3. 若學生僅是詢問問題或閒聊，不需修改任務時，則不必輸出 action 區塊。
+4. 所有時間字串務必遵循台灣本地無時區格式（YYYY-MM-DDTHH:MM:SS）。`;
 }
 
-// 執行 Action 區塊更動資料庫
-function executeAction(actionObj: any, currentTaskId: number | null): number {
-  const actionType = actionObj.action || actionObj.type;
+// 執行 Action 寫入 SQLite
+function executeAction(actionObj: any, currentTaskId: number | null): number | null {
+  if (!actionObj || typeof actionObj !== 'object') return currentTaskId;
+
+  const actionType = actionObj.action;
 
   if (actionType === 'create_task') {
-    const taskResult = db
-      .prepare(`
-        INSERT INTO tasks (
-          name, goal_description, deadline, available_time,
-          task_type, tools, need_line, status, ai_goal, ai_tools
-        ) VALUES (?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)
-      `)
-      .run(
-        actionObj.name || '未命名任務',
-        actionObj.goal_description || '',
-        actionObj.deadline || formatLocal(new Date(Date.now() + 7 * 86400000)),
-        actionObj.available_time || '每天 1-2 小時',
-        (actionObj.task_type as TaskType) || '學習',
-        JSON.stringify(actionObj.tools || []),
-        actionObj.goal_description || '',
-        JSON.stringify(actionObj.tools || [])
-      );
+    const taskName = actionObj.name || '新任務規劃';
+    const goalDesc = actionObj.goal_description || taskName;
+    const deadline =
+      actionObj.deadline || formatLocal(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+    const availableTime = actionObj.available_time || '每天 1-2 小時';
+    const taskType: TaskType = actionObj.task_type || '學習';
+    const toolsStr = JSON.stringify(actionObj.tools || []);
 
-    const newTaskId = taskResult.lastInsertRowid as number;
-
-    // 插入步驟
-    const insertStep = db.prepare(`
-      INSERT INTO steps (task_id, order_num, title, description, estimated_time, tool_suggestion, completion_criteria)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+    const insertTask = db.prepare(`
+      INSERT INTO tasks (
+        name, goal_description, deadline, available_time,
+        task_type, tools, need_line, status, ai_goal, ai_tools
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, 'pending', ?, ?)
     `);
+
+    const taskRes = insertTask.run(
+      taskName,
+      goalDesc,
+      deadline,
+      availableTime,
+      taskType,
+      toolsStr,
+      goalDesc,
+      toolsStr
+    );
+
+    const newTaskId = taskRes.lastInsertRowid as number;
+    currentTaskId = newTaskId;
 
     const stepIds: number[] = [];
     if (Array.isArray(actionObj.steps)) {
+      const insertStep = db.prepare(`
+        INSERT INTO steps (
+          task_id, order_num, title, description, estimated_time,
+          tool_suggestion, completion_criteria, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+      `);
+
       actionObj.steps.forEach((step: any, idx: number) => {
         const stepRes = insertStep.run(
           newTaskId,
@@ -259,23 +494,25 @@ function executeAction(actionObj: any, currentTaskId: number | null): number {
       });
     }
 
-    // 插入提醒
-    const insertReminder = db.prepare(`
-      INSERT INTO reminders (task_id, step_id, remind_at, message, status, enabled)
-      VALUES (?, ?, ?, ?, 'pending', 1)
-    `);
-
     if (Array.isArray(actionObj.reminders)) {
+      const insertReminder = db.prepare(`
+        INSERT INTO reminders (
+          task_id, step_id, remind_at, message, status, enabled
+        ) VALUES (?, ?, ?, ?, 'pending', 1)
+      `);
+
       actionObj.reminders.forEach((rem: any) => {
         const stepId =
-          typeof rem.step_index === 'number' && rem.step_index >= 0 && rem.step_index < stepIds.length
+          typeof rem.step_index === 'number' &&
+          rem.step_index >= 0 &&
+          rem.step_index < stepIds.length
             ? stepIds[rem.step_index]
             : null;
         insertReminder.run(
           newTaskId,
           stepId,
-          rem.remind_at || formatLocal(new Date(Date.now() + 86400000)),
-          rem.message || `【數位學伴提醒】記得執行任務：${actionObj.name}`
+          rem.remind_at || formatLocal(new Date(Date.now() + 24 * 60 * 60 * 1000)),
+          rem.message || `【數位學伴提醒】${taskName} 進度提醒`
         );
       });
     }
@@ -283,113 +520,96 @@ function executeAction(actionObj: any, currentTaskId: number | null): number {
     return newTaskId;
   }
 
-  // 以下操作需要已存在的 taskId
-  if (!currentTaskId) {
-    throw new Error('無法在未建立任務前執行該操作');
-  }
+  if (!currentTaskId) return null;
 
   if (actionType === 'update_task') {
     const fields: string[] = [];
     const values: unknown[] = [];
-    if (actionObj.name !== undefined) { fields.push('name = ?'); values.push(actionObj.name); }
-    if (actionObj.goal_description !== undefined) { fields.push('goal_description = ?'); values.push(actionObj.goal_description); }
-    if (actionObj.deadline !== undefined) { fields.push('deadline = ?'); values.push(actionObj.deadline); }
-    if (actionObj.available_time !== undefined) { fields.push('available_time = ?'); values.push(actionObj.available_time); }
-    if (actionObj.task_type !== undefined) { fields.push('task_type = ?'); values.push(actionObj.task_type); }
-    if (actionObj.status !== undefined) { fields.push('status = ?'); values.push(actionObj.status); }
-    if (actionObj.ai_goal !== undefined) { fields.push('ai_goal = ?'); values.push(actionObj.ai_goal); }
+    if (actionObj.name) { fields.push('name = ?'); values.push(actionObj.name); }
+    if (actionObj.goal_description) { fields.push('goal_description = ?'); values.push(actionObj.goal_description); }
+    if (actionObj.deadline) { fields.push('deadline = ?'); values.push(actionObj.deadline); }
+    if (actionObj.available_time) { fields.push('available_time = ?'); values.push(actionObj.available_time); }
+    if (actionObj.task_type) { fields.push('task_type = ?'); values.push(actionObj.task_type); }
+    if (actionObj.status) { fields.push('status = ?'); values.push(actionObj.status); }
 
     if (fields.length > 0) {
       values.push(currentTaskId);
       db.prepare(`UPDATE tasks SET ${fields.join(', ')} WHERE id = ?`).run(...values);
     }
   } else if (actionType === 'set_step_status') {
-    const status = actionObj.status === 'completed' ? 'completed' : 'pending';
-    if (actionObj.step_id) {
-      db.prepare('UPDATE steps SET status = ? WHERE id = ? AND task_id = ?').run(status, actionObj.step_id, currentTaskId);
-    } else if (actionObj.order_num) {
-      db.prepare('UPDATE steps SET status = ? WHERE order_num = ? AND task_id = ?').run(status, actionObj.order_num, currentTaskId);
-    }
+    if (actionObj.step_id && actionObj.status) {
+      db.prepare('UPDATE steps SET status = ? WHERE id = ? AND task_id = ?').run(
+        actionObj.status,
+        actionObj.step_id,
+        currentTaskId
+      );
 
-    // 自動更新任務狀態：全完成為 completed，部分完成為 in_progress
-    const counts = db
-      .prepare(`
-        SELECT COUNT(*) as total,
-               SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-        FROM steps WHERE task_id = ?
-      `)
-      .get(currentTaskId) as { total: number; completed: number };
-
-    if (counts && counts.total > 0) {
-      if (counts.completed === counts.total) {
-        db.prepare("UPDATE tasks SET status = 'completed' WHERE id = ?").run(currentTaskId);
-      } else if (counts.completed > 0) {
-        db.prepare("UPDATE tasks SET status = 'in_progress' WHERE id = ?").run(currentTaskId);
+      const allSteps = db
+        .prepare('SELECT status FROM steps WHERE task_id = ?')
+        .all(currentTaskId) as { status: string }[];
+      if (allSteps.length > 0) {
+        const allCompleted = allSteps.every((s) => s.status === 'completed');
+        const anyCompleted = allSteps.some((s) => s.status === 'completed');
+        const nextTaskStatus = allCompleted
+          ? 'completed'
+          : anyCompleted
+          ? 'in_progress'
+          : 'pending';
+        db.prepare('UPDATE tasks SET status = ? WHERE id = ?').run(nextTaskStatus, currentTaskId);
       }
     }
   } else if (actionType === 'add_step') {
-    let newOrder = 1;
-    if (typeof actionObj.insert_after_order === 'number') {
-      newOrder = actionObj.insert_after_order + 1;
-      db.prepare('UPDATE steps SET order_num = order_num + 1 WHERE task_id = ? AND order_num >= ?').run(currentTaskId, newOrder);
-    } else {
-      const maxOrder = db.prepare('SELECT MAX(order_num) as m FROM steps WHERE task_id = ?').get(currentTaskId) as { m: number | null };
-      newOrder = (maxOrder?.m || 0) + 1;
-    }
+    const maxOrder = db
+      .prepare('SELECT MAX(order_num) as m FROM steps WHERE task_id = ?')
+      .get(currentTaskId) as { m: number | null };
+    const nextOrder = (maxOrder?.m || 0) + 1;
 
     db.prepare(`
-      INSERT INTO steps (task_id, order_num, title, description, estimated_time, tool_suggestion, completion_criteria, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+      INSERT INTO steps (
+        task_id, order_num, title, description, estimated_time,
+        tool_suggestion, completion_criteria, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
     `).run(
       currentTaskId,
-      newOrder,
-      actionObj.title || `步驟 ${newOrder}`,
+      nextOrder,
+      actionObj.title || `步驟 ${nextOrder}`,
       actionObj.description || '',
       actionObj.estimated_time || '',
       actionObj.tool_suggestion || '',
       actionObj.completion_criteria || ''
     );
   } else if (actionType === 'update_step') {
-    const fields: string[] = [];
-    const values: unknown[] = [];
-    if (actionObj.title !== undefined) { fields.push('title = ?'); values.push(actionObj.title); }
-    if (actionObj.description !== undefined) { fields.push('description = ?'); values.push(actionObj.description); }
-    if (actionObj.estimated_time !== undefined) { fields.push('estimated_time = ?'); values.push(actionObj.estimated_time); }
-    if (actionObj.tool_suggestion !== undefined) { fields.push('tool_suggestion = ?'); values.push(actionObj.tool_suggestion); }
-    if (actionObj.completion_criteria !== undefined) { fields.push('completion_criteria = ?'); values.push(actionObj.completion_criteria); }
-    if (actionObj.status !== undefined) { fields.push('status = ?'); values.push(actionObj.status); }
+    if (actionObj.step_id) {
+      const fields: string[] = [];
+      const values: unknown[] = [];
+      if (actionObj.title) { fields.push('title = ?'); values.push(actionObj.title); }
+      if (actionObj.description !== undefined) { fields.push('description = ?'); values.push(actionObj.description); }
+      if (actionObj.estimated_time !== undefined) { fields.push('estimated_time = ?'); values.push(actionObj.estimated_time); }
+      if (actionObj.tool_suggestion !== undefined) { fields.push('tool_suggestion = ?'); values.push(actionObj.tool_suggestion); }
+      if (actionObj.completion_criteria !== undefined) { fields.push('completion_criteria = ?'); values.push(actionObj.completion_criteria); }
+      if (actionObj.status) { fields.push('status = ?'); values.push(actionObj.status); }
 
-    if (fields.length > 0) {
-      if (actionObj.step_id) {
+      if (fields.length > 0) {
         values.push(actionObj.step_id, currentTaskId);
         db.prepare(`UPDATE steps SET ${fields.join(', ')} WHERE id = ? AND task_id = ?`).run(...values);
-      } else if (actionObj.order_num) {
-        values.push(actionObj.order_num, currentTaskId);
-        db.prepare(`UPDATE steps SET ${fields.join(', ')} WHERE order_num = ? AND task_id = ?`).run(...values);
       }
     }
   } else if (actionType === 'delete_step') {
     if (actionObj.step_id) {
       db.prepare('DELETE FROM steps WHERE id = ? AND task_id = ?').run(actionObj.step_id, currentTaskId);
-    } else if (actionObj.order_num) {
-      db.prepare('DELETE FROM steps WHERE order_num = ? AND task_id = ?').run(actionObj.order_num, currentTaskId);
     }
-    // 重新編號 order_num
-    const remainingSteps = db.prepare('SELECT id FROM steps WHERE task_id = ? ORDER BY order_num ASC, id ASC').all(currentTaskId) as { id: number }[];
-    const updateOrder = db.prepare('UPDATE steps SET order_num = ? WHERE id = ?');
-    remainingSteps.forEach((s, idx) => updateOrder.run(idx + 1, s.id));
   } else if (actionType === 'replan_steps') {
-    // 刪除所有現有步驟與提醒
     db.prepare('DELETE FROM steps WHERE task_id = ?').run(currentTaskId);
     db.prepare('DELETE FROM reminders WHERE task_id = ?').run(currentTaskId);
 
-    const insertStep = db.prepare(`
-      INSERT INTO steps (task_id, order_num, title, description, estimated_time, tool_suggestion, completion_criteria, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
-    `);
-
     const stepIds: number[] = [];
     if (Array.isArray(actionObj.steps)) {
+      const insertStep = db.prepare(`
+        INSERT INTO steps (
+          task_id, order_num, title, description, estimated_time,
+          tool_suggestion, completion_criteria, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+      `);
       actionObj.steps.forEach((step: any, idx: number) => {
         const stepRes = insertStep.run(
           currentTaskId,
@@ -462,39 +682,81 @@ export async function handleTaskChat(
 ): Promise<TaskChatResponse> {
   const cfg = getAiSettings();
 
-  // 1. 取得既有任務狀態與歷史對話
+  // 1. 取得既有任務狀態
   let currentTask: TaskDetail | null = null;
-  let historyMessages: TaskMessage[] = [];
-
   if (taskId) {
     currentTask = getTaskDetail(taskId);
     if (!currentTask) {
       throw new Error(`找不到任務 ID ${taskId}`);
     }
-    historyMessages = getTaskMessages(taskId);
   }
 
-  // 2. 組裝 System Prompt 與對話歷程
+  // 2. Crush 機制：Token 消耗與動態閾值檢查 (Adaptive Context Window Threshold)
+  if (taskId && currentTask) {
+    const cw = getModelContextWindow(cfg.model_name);
+    const currentTokens =
+      (currentTask.task.prompt_tokens || 0) + (currentTask.task.completion_tokens || 0);
+    const remaining = cw - currentTokens;
+    const threshold =
+      cw > LARGE_CONTEXT_WINDOW_THRESHOLD
+        ? LARGE_CONTEXT_WINDOW_BUFFER
+        : Math.floor(cw * SMALL_CONTEXT_WINDOW_RATIO);
+
+    // 取得歷史訊息筆數
+    const totalMsgs = db
+      .prepare('SELECT COUNT(*) as c FROM task_messages WHERE task_id = ?')
+      .get(taskId) as { c: number };
+
+    if (remaining <= threshold && totalMsgs.c >= 4) {
+      console.log(
+        `⚡ [Crush Context] 達到滾動壓縮閾值（剩餘 Token ${remaining} <= 門檻 ${threshold}），自動啟動結構化摘要！`
+      );
+      try {
+        await executeSummarize(taskId);
+        // 重新載入任務最新資料
+        currentTask = getTaskDetail(taskId);
+      } catch (err) {
+        console.error('自動摘要失敗，繼續進行對話：', err);
+      }
+    }
+  }
+
+  // 3. Crush 指針切片：若有 SummaryMessageID 則切片並改為 User 角色
+  let sessionMessages: TaskMessage[] = [];
+  if (taskId) {
+    sessionMessages = getSessionMessages(taskId);
+  }
+
+  // 4. 組裝 System Prompt 與對話歷程
   const systemPrompt = buildSystemPrompt(currentTask);
   const aiMessages: AiMessage[] = [{ role: 'system', content: systemPrompt }];
 
-  // 放入最近 10 則歷史訊息
-  const recentHistory = historyMessages.slice(-10);
-  for (const m of recentHistory) {
+  for (const m of sessionMessages) {
     aiMessages.push({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
+      role: (m.role === 'system' ? 'system' : m.role === 'assistant' ? 'assistant' : 'user') as
+        | 'system'
+        | 'assistant'
+        | 'user',
+      content: truncateOutput(m.content, 6000),
     });
   }
 
-  // 加入本次使用者的問題
-  aiMessages.push({ role: 'user', content: messageText });
+  // Crush 輸出防護：加入截斷後的本次使用者訊息
+  const sanitizedUserText = truncateOutput(messageText, 8000);
+  aiMessages.push({ role: 'user', content: sanitizedUserText });
 
-  // 3. 呼叫 AI 模型
+  // 5. 呼叫 AI 模型（附帶 Crush Session Affinity Header）
+  const headers = sessionHeaders(taskId || 'new');
   console.log(`💬 發送任務對話請求（task_id: ${taskId || '新建'}，模型: ${cfg.model_name}）`);
-  const rawReply = await callOpenAICompatible(cfg, aiMessages, 90_000);
 
-  // 4. 解析 Action 區塊（支援 ```action ... ``` 或 ```json ... ```）
+  const responseResult = await callOpenAICompatibleWithUsage(cfg, aiMessages, {
+    timeoutMs: 90_000,
+    headers,
+  });
+
+  const rawReply = responseResult.content;
+
+  // 6. 解析 Action 區塊（支援 ```action ... ``` 或 ```json ... ```）
   let cleanReply = rawReply;
   let actionDataStr: string | null = null;
   let actionsToExecute: any[] = [];
@@ -511,19 +773,17 @@ export async function handleTaskChat(
       } else {
         actionsToExecute = [parsed];
       }
-      // 移除回覆中的 action 程式碼區塊，讓使用者看到乾淨的回應
       cleanReply = rawReply.replace(actionMatch[0], '').trim();
     } catch (e) {
       console.warn('解析 action JSON 失敗：', e);
     }
   }
 
-  // 如果清空後回覆變空，提供友善預設文字
   if (!cleanReply) {
     cleanReply = '好的，我已經為你更新了任務計畫！';
   }
 
-  // 5. 在 SQLite transaction 中執行動作
+  // 7. 在 SQLite transaction 中執行動作並更新 Token 統計
   let finalTaskId: number | null = taskId || null;
 
   const runUpdates = db.transaction(() => {
@@ -532,7 +792,6 @@ export async function handleTaskChat(
     }
 
     if (!finalTaskId) {
-      // 若新對話但 AI 未發出 create_task，建立一個通用任務
       const defaultTaskRes = db
         .prepare(`
           INSERT INTO tasks (
@@ -541,8 +800,8 @@ export async function handleTaskChat(
           ) VALUES (?, ?, ?, '每天 1 小時', '學習', '[]', 0, 'pending', ?, '[]')
         `)
         .run(
-          messageText.slice(0, 20) || '新任務規劃',
-          messageText,
+          sanitizedUserText.slice(0, 20) || '新任務規劃',
+          sanitizedUserText,
           formatLocal(new Date(Date.now() + 7 * 86400000)),
           cleanReply.slice(0, 50)
         );
@@ -559,6 +818,19 @@ export async function handleTaskChat(
       INSERT INTO task_messages (task_id, role, content, action_data)
       VALUES (?, 'assistant', ?, ?)
     `).run(finalTaskId, cleanReply, actionDataStr);
+
+    // Crush 機制：累加或記錄 Token 統計
+    const addedPromptTokens =
+      responseResult.usage?.prompt_tokens || Math.ceil((systemPrompt.length + messageText.length) / 3.5);
+    const addedCompletionTokens =
+      responseResult.usage?.completion_tokens || Math.ceil(cleanReply.length / 3.5);
+
+    db.prepare(`
+      UPDATE tasks
+      SET prompt_tokens = COALESCE(prompt_tokens, 0) + ?,
+          completion_tokens = COALESCE(completion_tokens, 0) + ?
+      WHERE id = ?
+    `).run(addedPromptTokens, addedCompletionTokens, finalTaskId);
   });
 
   runUpdates();

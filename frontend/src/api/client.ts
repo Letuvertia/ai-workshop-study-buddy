@@ -142,3 +142,10 @@ export async function sendTaskChat(
     body: JSON.stringify({ message, task_id: taskId }),
   });
 }
+
+// Crush 架構：手動觸發滾動摘要壓縮 Context
+export async function summarizeTask(taskId: number): Promise<{ summary: TaskMessage }> {
+  return request<{ summary: TaskMessage }>(`/tasks/${taskId}/summarize`, {
+    method: 'POST',
+  });
+}

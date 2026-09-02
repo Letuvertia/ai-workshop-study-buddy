@@ -523,7 +523,7 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
           {!isCustom ? (
             <div className="endpoint-banner">
               <span className="endpoint-icon">⚡</span>
-              <span>API 端點已自動指定為本機代理（<code>http://localhost:8317/v1</code>）</span>
+              <span>已自動指定 CLIProxyAPI 的本機端點（<code>http://localhost:8317/v1</code>）</span>
             </div>
           ) : (
             <>

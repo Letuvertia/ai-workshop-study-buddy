@@ -59,6 +59,16 @@ export async function sendCliProxyCallback(
   });
 }
 
+// 斷開指定供應商的授權連結
+export async function cliProxyDisconnect(
+  provider: string
+): Promise<{ ok: boolean; message: string; auth_status?: any }> {
+  return request('/cliproxy/disconnect', {
+    method: 'POST',
+    body: JSON.stringify({ provider }),
+  });
+}
+
 // 執行 Health Check 並動態取得真實可用模型
 export async function healthCheckAi(
   endpoint: string,

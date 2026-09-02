@@ -7,6 +7,7 @@ import {
   cliProxyLogin,
   sendCliProxyCallback,
   healthCheckAi,
+  cliProxyDisconnect,
 } from '../api/aiSettings.js';
 import { AiConfig, TestConnectionResult } from '../types/index.js';
 import './AiSettings.css';
@@ -206,6 +207,7 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [callbackInput, setCallbackInput] = useState('');
   const [submittingCallback, setSubmittingCallback] = useState(false);
   const [result, setResult] = useState<TestConnectionResult | null>(null);
@@ -343,6 +345,27 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
     }
   };
 
+  // 點擊「斷開帳號連結」按鈕
+  const handleDisconnect = async () => {
+    if (selectedProvider === 'custom') return;
+    setDisconnecting(true);
+    setResult(null);
+    try {
+      const res = await cliProxyDisconnect(selectedProvider);
+      if (res.ok) {
+        if (res.auth_status) setAuthStatus(res.auth_status);
+        setHealthPassed(false);
+        setHealthMessage(null);
+        setLiveModels([]);
+        setResult({ ok: true, message: '已成功斷開帳號連結', sample: '' });
+      }
+    } catch (e: any) {
+      setResult({ ok: false, message: `斷開失敗：${e.message || e}`, sample: '' });
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
   // 手動送出跳轉回呼網址（若瀏覽器未自動跳轉）
   const handleManualCallback = async () => {
     if (!callbackInput.trim()) return;
@@ -446,17 +469,25 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
                 <span className="auth-badge warning">⚠️ 尚未連結帳號</span>
               )}
             </div>
-            <button
-              className={`ai-btn ${isLoggedIn ? 'ghost' : 'connect-btn'}`}
-              disabled={connecting}
-              onClick={handleConnect}
-            >
-              {connecting
-                ? '⏳ 開啟登入頁面並等待授權…'
-                : isLoggedIn
-                ? '🔄 重新登入 / 切換帳號'
-                : '🔗 連結帳號（前往登入）'}
-            </button>
+            {isLoggedIn ? (
+              <button
+                type="button"
+                className="ai-btn disconnect-btn"
+                disabled={disconnecting}
+                onClick={handleDisconnect}
+              >
+                {disconnecting ? '斷開中…' : '斷開帳號連結'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="ai-btn connect-btn"
+                disabled={connecting}
+                onClick={handleConnect}
+              >
+                {connecting ? '⏳ 開啟登入頁面並等待授權…' : '🔗 連結帳號（前往登入）'}
+              </button>
+            )}
 
             {connecting && (
               <div className="callback-helper">

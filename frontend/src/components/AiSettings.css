@@ -178,6 +178,18 @@
   border-color: var(--primary);
   font-weight: 500;
 }
+.disconnect-btn {
+  background: #fff;
+  color: #ef4444;
+  border-color: #fca5a5;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+.disconnect-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #dc2626;
+}
 .endpoint-banner {
   display: flex;
   align-items: center;

@@ -164,8 +164,8 @@ npm install
 2. **🟢 訂閱制 OpenAI**：
    - 適合擁有 ChatGPT Plus / Team 訂閱方案的同學。
    - 點擊「**🔗 連結帳號**」並於瀏覽器完成一次性授權，直接調用訂閱方案額度。
-3. **🔵 訂閱制 Google AI Pro**：
-   - 適合擁有 Google One AI Premium 方案的同學。
+3. **🔵 訂閱制 Google**：
+   - 適合擁有 Google 訂閱方案（Plus / Pro）的同學。
    - 點擊「**🔗 連結帳號**」登入 Google 帳號授權即可使用。
 4. **⚙️ 自訂模型端點（本機 Ollama / LM Studio 或外部 API Key）**：
    - **本機模型**：注重隱私或離線使用，本機安裝並啟動 Ollama（預設端點 `http://localhost:11434/v1`），API Key 留空即可連線。

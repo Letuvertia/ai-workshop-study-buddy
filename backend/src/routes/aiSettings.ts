@@ -275,6 +275,51 @@ router.post('/cliproxy/callback', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/ai/cliproxy/disconnect — 斷開指定供應商的授權連結（刪除憑證檔）
+router.post('/cliproxy/disconnect', (req: Request, res: Response) => {
+  const { provider } = req.body as { provider: 'claude' | 'openai' | 'google' };
+  const authDir = path.join(os.homedir(), '.cli-proxy-api');
+
+  if (fs.existsSync(authDir)) {
+    try {
+      const files = fs.readdirSync(authDir);
+      for (const file of files) {
+        if (!file.endsWith('.json')) continue;
+        const filePath = path.join(authDir, file);
+        try {
+          const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          const type = (content.type || '').toLowerCase();
+          let match = false;
+          if (provider === 'claude' && (file.startsWith('claude-') || type === 'claude')) {
+            match = true;
+          } else if (provider === 'openai' && (file.startsWith('codex-') || type === 'codex' || type === 'openai')) {
+            match = true;
+          } else if (
+            provider === 'google' &&
+            (file.startsWith('antigravity-') || file.startsWith('gemini-') || type === 'antigravity' || type === 'gemini')
+          ) {
+            match = true;
+          }
+          if (match) {
+            fs.unlinkSync(filePath);
+          }
+        } catch {
+          /* ignore corrupt file */
+        }
+      }
+    } catch (err: any) {
+      return res.status(500).json({ ok: false, error: `無法刪除憑證：${err.message}` });
+    }
+  }
+
+  const updatedAuth = getCliProxyAuthStatus();
+  return res.json({
+    ok: true,
+    message: '已成功斷開帳號連結',
+    auth_status: updatedAuth,
+  });
+});
+
 // POST /api/ai/settings — 儲存設定
 router.post('/settings', (req: Request, res: Response) => {
   const body = req.body as Partial<AiConfig>;

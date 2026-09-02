@@ -71,21 +71,24 @@ export default function TaskStepsPanel({
       <div className="panel-header">
         <div className="panel-title-row">
           <h2 className="panel-task-name">{task.name}</h2>
-          <span
-            className={`panel-status-badge ${
-              task.status === 'completed'
-                ? 'completed'
+          <div className="panel-status-group">
+            {daysLeft && <span className="days-badge">{daysLeft}</span>}
+            <span
+              className={`panel-status-badge ${
+                task.status === 'completed'
+                  ? 'completed'
+                  : task.status === 'in_progress'
+                  ? 'in_progress'
+                  : 'pending'
+              }`}
+            >
+              {task.status === 'completed'
+                ? '✓ 已完成'
                 : task.status === 'in_progress'
-                ? 'in_progress'
-                : 'pending'
-            }`}
-          >
-            {task.status === 'completed'
-              ? '✓ 已完成'
-              : task.status === 'in_progress'
-              ? '進行中'
-              : '待處理'}
-          </span>
+                ? '進行中'
+                : '待處理'}
+            </span>
+          </div>
         </div>
 
         {task.goal_description && (
@@ -96,10 +99,7 @@ export default function TaskStepsPanel({
         <div className="panel-meta-grid">
           <div className="meta-block">
             <span className="meta-label">📅 截止時間</span>
-            <span className="meta-val">
-              {formatDisplay(task.deadline)}
-              {daysLeft && <span className="days-badge">{daysLeft}</span>}
-            </span>
+            <span className="meta-val">{formatDisplay(task.deadline)}</span>
           </div>
           <div className="meta-block">
             <span className="meta-label">⏳ 可用時間</span>

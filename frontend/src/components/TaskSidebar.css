@@ -1,0 +1,249 @@
+.task-sidebar {
+  width: 270px;
+  min-width: 270px;
+  max-width: 270px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.sidebar-top {
+  padding: 14px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+.new-task-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+}
+
+.new-task-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.new-task-btn.active {
+  box-shadow: 0 0 0 2px #93c5fd;
+}
+
+.plus-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.sidebar-filter {
+  display: flex;
+  padding: 6px 12px;
+  gap: 4px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
+.filter-btn {
+  flex: 1;
+  padding: 4px 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--gray-600, #64748b);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.filter-btn:hover {
+  background: #e2e8f0;
+  color: var(--gray-800, #1e293b);
+}
+
+.filter-btn.active {
+  background: #ffffff;
+  color: var(--primary, #3b82f6);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-task-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-empty {
+  padding: 30px 14px;
+  text-align: center;
+  color: var(--gray-500, #94a3b8);
+}
+
+.sidebar-empty p {
+  font-size: 13px;
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+.sidebar-empty span {
+  font-size: 11px;
+  line-height: 1.4;
+  display: block;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  background: #ffffff;
+}
+
+.task-item:hover {
+  background: #f1f5f9;
+}
+
+.task-item.selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.task-item.done .task-title {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.task-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-item-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.completed {
+  background: #10b981;
+}
+
+.status-dot.in_progress {
+  background: #3b82f6;
+}
+
+.status-dot.pending {
+  background: #cbd5e1;
+}
+
+.task-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-800, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gray-500, #64748b);
+  padding-left: 14px;
+}
+
+.task-type-tag {
+  background: #f1f5f9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.task-progress-text {
+  font-size: 10px;
+}
+
+.task-delete-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.task-item:hover .task-delete-btn {
+  opacity: 1;
+}
+
+.task-delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.sidebar-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  background: #f8fafc;
+}
+
+.sidebar-tool-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gray-700, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-tool-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.tool-icon {
+  font-size: 14px;
+}

@@ -1,61 +1,179 @@
-import { useState } from 'react';
-import TaskForm from './components/TaskForm.js';
-import PlanConfirmation from './components/PlanConfirmation.js';
-import TaskOverview from './components/TaskOverview.js';
-import TaskDetail from './components/TaskDetail.js';
-import AiSettings from './components/AiSettings.js';
+import { useState, useEffect } from 'react';
+import TaskSidebar from './components/TaskSidebar.js';
+import TaskChat from './components/TaskChat.js';
+import TaskStepsPanel from './components/TaskStepsPanel.js';
 import ScheduleUpload from './components/ScheduleUpload.js';
-import { generatePlan, createTask } from './api/client.js';
-import { AIPlan, AppView, TaskFormData } from './types/index.js';
+import AiSettings from './components/AiSettings.js';
+import {
+  getTasks,
+  getTask,
+  getTaskMessages,
+  sendTaskChat,
+  updateStep,
+  updateReminder,
+  deleteTask,
+} from './api/client.js';
+import { Task, TaskDetail, TaskMessage, AppView } from './types/index.js';
 import './styles.css';
 
 export default function App() {
-  const [view, setView] = useState<AppView>('overview');
-  const [formData, setFormData] = useState<TaskFormData | null>(null);
-  const [aiPlan, setAiPlan] = useState<AIPlan | null>(null);
+  const [view, setView] = useState<AppView>('planner');
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [taskDetail, setTaskDetail] = useState<TaskDetail | null>(null);
+  const [messages, setMessages] = useState<TaskMessage[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState('');
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // ─── Step 1：使用者送出表單，呼叫 AI 產生規劃 ───
-  async function handleFormSubmit(data: TaskFormData) {
-    setFormData(data);
-    setLoading(true);
-    setError('');
+  // 載入所有任務清單
+  const loadTasks = async () => {
     try {
-      const plan = await generatePlan(data);
-      setAiPlan(plan);
-      setView('confirm');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '產生規劃失敗，請確認 LLM API 是否正在運行');
-    } finally {
-      setLoading(false);
+      const data = await getTasks();
+      setTasks(data);
+      return data;
+    } catch (e: any) {
+      console.error('載入任務失敗：', e);
+      return [];
     }
-  }
+  };
 
-  // ─── Step 2：使用者確認規劃，寫入資料庫 ───
-  async function handleConfirm(plan: AIPlan) {
-    if (!formData) return;
-    setLoading(true);
-    setError('');
+  // 載入指定任務的步驟詳情與歷史對話
+  const loadTaskData = async (id: number) => {
     try {
-      await createTask(formData, plan);
-      setRefreshTrigger(n => n + 1);
-      setView('overview');
-      setFormData(null);
-      setAiPlan(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '建立任務失敗');
-    } finally {
-      setLoading(false);
+      const [detail, msgRes] = await Promise.all([
+        getTask(id),
+        getTaskMessages(id).catch(() => ({ messages: [] })),
+      ]);
+      setTaskDetail(detail);
+      setMessages(msgRes.messages || []);
+    } catch (e: any) {
+      setError(e.message || '載入任務詳情失敗');
     }
-  }
+  };
 
-  function handleViewDetail(id: number) {
+  // 初次載入
+  useEffect(() => {
+    loadTasks().then((all) => {
+      if (all.length > 0 && selectedTaskId === null) {
+        // 預設開啟第一個任務
+        setSelectedTaskId(all[0].id);
+        loadTaskData(all[0].id);
+      }
+    });
+  }, []);
+
+  // 切換選擇的任務
+  const handleSelectTask = (id: number) => {
+    setView('planner');
     setSelectedTaskId(id);
-    setView('detail');
-  }
+    loadTaskData(id);
+    setError('');
+  };
+
+  // 點擊「新增任務」
+  const handleNewTask = () => {
+    setView('planner');
+    setSelectedTaskId(null);
+    setTaskDetail(null);
+    setMessages([]);
+    setError('');
+  };
+
+  // 發送對話訊息
+  const handleSendMessage = async (content: string) => {
+    setChatLoading(true);
+    setError('');
+
+    // 樂觀更新：立刻將使用者的訊息呈現在對話列表
+    const optimisticUserMsg: TaskMessage = {
+      id: Date.now(),
+      task_id: selectedTaskId || 0,
+      role: 'user',
+      content,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimisticUserMsg]);
+
+    try {
+      const res = await sendTaskChat(content, selectedTaskId);
+
+      // 如果原本是新對話，切換至剛建立的任務
+      if (!selectedTaskId || selectedTaskId !== res.task_id) {
+        setSelectedTaskId(res.task_id);
+      }
+
+      // 即時將資料庫最新狀態同步至右側看板！
+      setTaskDetail(res.task);
+
+      // 同步更新對話紀錄
+      const msgRes = await getTaskMessages(res.task_id).catch(() => null);
+      if (msgRes && msgRes.messages.length > 0) {
+        setMessages(msgRes.messages);
+      } else {
+        const assistantMsg: TaskMessage = {
+          id: Date.now() + 1,
+          task_id: res.task_id,
+          role: 'assistant',
+          content: res.reply,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+      }
+
+      // 重新載入任務側邊清單以更新進度
+      await loadTasks();
+    } catch (e: any) {
+      console.error('對話規劃失敗：', e);
+      setError(e.message || '對話回應失敗，請確認 AI 模型狀態');
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // 點擊步驟勾選框：切換步驟完成狀態
+  const handleToggleStep = async (stepId: number, currentStatus: string) => {
+    const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    try {
+      await updateStep(stepId, { status: nextStatus });
+      if (selectedTaskId) {
+        const updated = await getTask(selectedTaskId);
+        setTaskDetail(updated);
+        loadTasks();
+      }
+    } catch (e: any) {
+      setError(e.message || '更新步驟狀態失敗');
+    }
+  };
+
+  // 切換提醒啟用狀態
+  const handleToggleReminder = async (reminderId: number, currentEnabled: number) => {
+    try {
+      await updateReminder(reminderId, { enabled: currentEnabled ? 0 : 1 });
+      if (selectedTaskId) {
+        const updated = await getTask(selectedTaskId);
+        setTaskDetail(updated);
+      }
+    } catch (e: any) {
+      setError(e.message || '更新提醒失敗');
+    }
+  };
+
+  // 刪除任務
+  const handleDeleteTask = async (id: number) => {
+    try {
+      await deleteTask(id);
+      const remaining = await loadTasks();
+      if (selectedTaskId === id) {
+        if (remaining.length > 0) {
+          handleSelectTask(remaining[0].id);
+        } else {
+          handleNewTask();
+        }
+      }
+    } catch (e: any) {
+      setError(e.message || '刪除任務失敗');
+    }
+  };
 
   return (
     <div className="app">
@@ -64,85 +182,87 @@ export default function App() {
       {/* 頂部導覽列 */}
       <header className="app-header">
         <div className="header-content">
-          <div className="logo" onClick={() => setView('overview')} style={{ cursor: 'pointer' }}>
+          <div
+            className="logo"
+            onClick={() => setView('planner')}
+            style={{ cursor: 'pointer' }}
+          >
             <span className="logo-icon">📚</span>
             <span className="logo-text">數位學伴</span>
-            <span className="logo-sub">任務規劃系統</span>
+            <span className="logo-sub">AI 任務規劃夥伴</span>
           </div>
+
           <nav className="nav">
             <button
-              className={`nav-btn ${view === 'overview' ? 'nav-active' : ''}`}
-              onClick={() => setView('overview')}
+              className={`nav-btn ${view === 'planner' ? 'nav-active' : ''}`}
+              onClick={() => setView('planner')}
             >
-              📋 任務總覽
-            </button>
-            <button
-              className={`nav-btn ${view === 'create' ? 'nav-active' : ''}`}
-              onClick={() => { setView('create'); setError(''); }}
-            >
-              ＋ 建立任務
+              任務規劃
             </button>
             <button
               className={`nav-btn ${view === 'schedule' ? 'nav-active' : ''}`}
-              onClick={() => { setView('schedule'); setError(''); }}
+              onClick={() => setView('schedule')}
             >
-              📅 我的課表
+              課表管理
             </button>
           </nav>
         </div>
       </header>
 
-      {/* 主要內容 */}
+      {/* 主要內容區塊（左右留白，非滿版） */}
       <main className="app-main">
-        {/* 錯誤訊息 */}
         {error && (
           <div className="error-banner">
-            <span>❌ {error}</span>
+            <span>⚠️ {error}</span>
             <button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
-        {/* 任務總覽 */}
-        {view === 'overview' && (
-          <TaskOverview
-            onViewDetail={handleViewDetail}
-            onCreateNew={() => { setView('create'); setError(''); }}
-            refreshTrigger={refreshTrigger}
-          />
+        {/* 任務對話與步驟規劃工作區 */}
+        {view === 'planner' && (
+          <div className="planner-layout">
+            {/* 左側 Sidebar */}
+            <TaskSidebar
+              tasks={tasks}
+              selectedTaskId={selectedTaskId}
+              onSelectTask={handleSelectTask}
+              onNewTask={handleNewTask}
+              onDeleteTask={handleDeleteTask}
+            />
+
+            {/* 中間雙欄 Workspace */}
+            <div className="planner-workspace">
+              {/* 左欄：對話框 */}
+              <TaskChat
+                taskId={selectedTaskId}
+                taskName={taskDetail?.task?.name}
+                messages={messages}
+                onSendMessage={handleSendMessage}
+                loading={chatLoading}
+              />
+
+              {/* 右欄：任務步驟與進度 */}
+              <TaskStepsPanel
+                taskDetail={taskDetail}
+                onToggleStep={handleToggleStep}
+                onToggleReminder={handleToggleReminder}
+              />
+            </div>
+          </div>
         )}
 
-        {/* 建立任務表單 */}
-        {view === 'create' && (
-          <TaskForm onSubmit={handleFormSubmit} loading={loading} />
+        {/* 課表檢視 */}
+        {view === 'schedule' && (
+          <div className="schedule-view-wrapper">
+            <div className="schedule-view-header">
+              <button className="back-btn" onClick={() => setView('planner')}>
+                ← 返回任務規劃對話
+              </button>
+            </div>
+            <ScheduleUpload />
+          </div>
         )}
-
-        {/* AI 規劃確認 */}
-        {view === 'confirm' && formData && aiPlan && (
-          <PlanConfirmation
-            formData={formData}
-            plan={aiPlan}
-            onConfirm={handleConfirm}
-            onBack={() => setView('create')}
-            loading={loading}
-          />
-        )}
-
-        {/* 任務詳情 */}
-        {view === 'detail' && selectedTaskId !== null && (
-          <TaskDetail
-            taskId={selectedTaskId}
-            onBack={() => setView('overview')}
-          />
-        )}
-
-        {/* 我的課表 */}
-        {view === 'schedule' && <ScheduleUpload />}
       </main>
-
-      {/* 頁腳 */}
-      <footer className="app-footer">
-        <p>數位學伴 v1.0 · React + Node.js + SQLite</p>
-      </footer>
     </div>
   );
 }

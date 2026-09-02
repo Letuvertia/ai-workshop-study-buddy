@@ -30,6 +30,9 @@ export interface Task {
   status: TaskStatus;
   ai_goal: string;           // AI 產生的任務目標
   ai_tools: string;          // AI 建議的工具，JSON 字串
+  summary_message_id?: number | null; // Crush: 最近一次結構化摘要的 Message ID
+  prompt_tokens?: number;             // Crush: 累計消耗 prompt tokens
+  completion_tokens?: number;         // Crush: 累計消耗 completion tokens
   created_at: string;
 }
 
@@ -102,6 +105,28 @@ export interface TaskDetail {
   task: Task;
   steps: Step[];
   reminders: Reminder[];
+}
+
+// 任務對話訊息（每個任務獨立 Session）
+export interface TaskMessage {
+  id: number;
+  task_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  action_data?: string | null;
+  is_summary_message?: boolean | number; // Crush: 是否為壓縮摘要訊息
+  created_at: string;
+}
+
+export interface TaskChatRequest {
+  task_id?: number | null;
+  message: string;
+}
+
+export interface TaskChatResponse {
+  task_id: number;
+  reply: string;
+  task: TaskDetail;
 }
 
 // =============================================

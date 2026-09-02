@@ -8,21 +8,50 @@
 import type { AiConfig, AiMessage, TestConnectionResult } from '../types/index';
 import { callClaudeCli, callClaudeCliVision } from './claudeCli';
 
+import crypto from 'crypto';
+
 const CLAUDE_CLI_PREFIX = 'claude-cli';
 
-export async function callOpenAICompatible(
+// Crush 架構：為工作階段生成確定性的快取親和性 Header (Cache Affinity)
+export function sessionHeaders(sessionId: string | number): Record<string, string> {
+  const hash = crypto.createHash('sha256').update(String(sessionId)).digest('hex').slice(0, 16);
+  return {
+    'x-session-id': hash,
+    'x-session-affinity': hash,
+  };
+}
+
+export interface CallAiOptions {
+  timeoutMs?: number;
+  headers?: Record<string, string>;
+}
+
+export interface CallAiResult {
+  content: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+export async function callOpenAICompatibleWithUsage(
   cfg: AiConfig,
   messages: AiMessage[],
-  timeoutMs = 120_000
-): Promise<string> {
+  options?: CallAiOptions
+): Promise<CallAiResult> {
+  const timeoutMs = options?.timeoutMs || 120_000;
+
   if (cfg.endpoint && cfg.endpoint.trim().toLowerCase().startsWith(CLAUDE_CLI_PREFIX)) {
-    return callClaudeCli(messages, cfg.model_name, Math.max(timeoutMs, 180_000));
+    const text = await callClaudeCli(messages, cfg.model_name, Math.max(timeoutMs, 180_000));
+    return { content: text };
   }
 
   const url = cfg.endpoint.replace(/\/+$/, '') + '/chat/completions';
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    ...(options?.headers || {}),
   };
   if (cfg.api_key) headers.Authorization = `Bearer ${cfg.api_key}`;
 
@@ -39,8 +68,20 @@ export async function callOpenAICompatible(
       const text = await resp.text();
       throw new Error(`API 錯誤 ${resp.status}: ${text.slice(0, 300)}`);
     }
-    const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
-    return (data?.choices?.[0]?.message?.content || '').trim();
+    const data = (await resp.json()) as {
+      choices?: { message?: { content?: string } }[];
+      usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    };
+    const content = (data?.choices?.[0]?.message?.content || '').trim();
+    const usage = data?.usage
+      ? {
+          prompt_tokens: data.usage.prompt_tokens || 0,
+          completion_tokens: data.usage.completion_tokens || 0,
+          total_tokens: data.usage.total_tokens || 0,
+        }
+      : undefined;
+
+    return { content, usage };
   } catch (e) {
     if (e instanceof Error && e.name === 'AbortError') {
       throw new Error(`連線逾時（超過 ${timeoutMs / 1000} 秒）`);
@@ -49,6 +90,19 @@ export async function callOpenAICompatible(
   } finally {
     clearTimeout(timer);
   }
+}
+
+export async function callOpenAICompatible(
+  cfg: AiConfig,
+  messages: AiMessage[],
+  timeoutMs = 120_000,
+  extraHeaders?: Record<string, string>
+): Promise<string> {
+  const res = await callOpenAICompatibleWithUsage(cfg, messages, {
+    timeoutMs,
+    headers: extraHeaders,
+  });
+  return res.content;
 }
 
 // ── 圖片辨識（課表上傳用）─────────────────────────────────────────────────

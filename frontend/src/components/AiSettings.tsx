@@ -334,7 +334,8 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
             checkEndpointHealth('http://localhost:8317/v1', '', selectedProvider);
           }
         }
-        if (attempts > 30) {
+        // 最多輪詢 150 次（每 2 秒一次，共 300 秒 / 5 分鐘），給予極其充裕的時間進行 2FA 驗證與貼上跳轉網址
+        if (attempts > 150) {
           clearInterval(pollTimerRef.current);
           setConnecting(false);
         }

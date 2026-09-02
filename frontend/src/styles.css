@@ -32,26 +32,51 @@ body {
   color: var(--gray-800);
   line-height: 1.6;
   font-size: 15px;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+html {
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* ─── Layout ─── */
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+}
 
 .app-header {
+  height: 56px;
+  min-height: 56px;
+  max-height: 56px;
+  flex-shrink: 0;
   background: var(--primary);
   color: white;
   padding: 0 1.5rem;
-  box-shadow: var(--shadow-md);
-  position: sticky; top: 0; z-index: 100;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 100;
 }
 
 .header-content {
-  max-width: 900px;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
+  height: 100%;
 }
 
 .logo { display: flex; align-items: center; gap: 0.5rem; }
@@ -73,12 +98,83 @@ body {
 .nav-btn:hover { background: rgba(255,255,255,0.15); }
 .nav-active { background: rgba(255,255,255,0.25) !important; font-weight: 600; }
 
-.app-main {
+.app-main,
+.main-content {
   flex: 1;
-  max-width: 900px;
+  min-height: 0;
+  height: calc(100vh - 56px);
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
-  padding: 1.5rem 1rem;
+  padding: 14px 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Planner ChatGPT-Style Layout ─── */
+.planner-layout {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  gap: 18px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.planner-workspace {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.schedule-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.schedule-view-header {
+  display: flex;
+  align-items: center;
+}
+
+.back-btn {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--gray-700);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.back-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 1024px) {
+  .planner-layout {
+    flex-direction: column;
+  }
+  .task-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+  }
+  .planner-workspace {
+    grid-template-columns: 1fr;
+  }
 }
 
 .app-footer {

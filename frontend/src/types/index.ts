@@ -29,6 +29,9 @@ export interface Task {
   status: TaskStatus;
   ai_goal: string;
   ai_tools: string;       // JSON 字串
+  summary_message_id?: number | null; // Crush: 最近一次結構化摘要的 Message ID
+  prompt_tokens?: number;             // Crush: 累計消耗 prompt tokens
+  completion_tokens?: number;         // Crush: 累計消耗 completion tokens
   created_at: string;
   // 列表頁用的額外欄位
   step_count?: number;
@@ -96,8 +99,25 @@ export interface TaskDetail {
   reminders: Reminder[];
 }
 
+// 任務對話紀錄
+export interface TaskMessage {
+  id: number;
+  task_id: number;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  action_data?: string | null;
+  is_summary_message?: boolean | number; // Crush: 是否為壓縮摘要訊息
+  created_at: string;
+}
+
+export interface TaskChatResponse {
+  task_id: number;
+  reply: string;
+  task: TaskDetail;
+}
+
 // 頁面導覽狀態
-export type AppView = 'overview' | 'create' | 'confirm' | 'detail' | 'schedule';
+export type AppView = 'planner' | 'schedule';
 
 // =============================================
 // AI 模型設定（三按鈕：訂閱制 Claude／外部雲端／自建本地）

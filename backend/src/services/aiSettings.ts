@@ -1,9 +1,8 @@
 // =============================================
 // aiSettings.ts — AI 模型設定的讀取與儲存
 //
-// 設定存成一個 JSON 檔（backend/data/ai-settings.json），取代手動編輯 .env。
-// 第一次啟動、還沒存過設定時，預設沿用 .env 裡的 LOCAL_LLM_API_URL / LOCAL_LLM_MODEL
-// （行為與舊版完全相容，不會讓現有使用者的設定失效）。
+// 設定存成一個 JSON 檔（backend/data/ai-settings.json），由網頁面板直接即時設定。
+// 第一次啟動時預設使用訂閱制 Claude。
 // =============================================
 import fs from 'node:fs';
 import path from 'node:path';
@@ -100,21 +99,6 @@ export const PRESETS: Record<string, AiConfig> = {
   },
 };
 
-// 舊版 .env 存的是完整的 .../chat/completions 網址，這裡去掉尾巴，
-// 統一成「base endpoint」，跟 callOpenAICompatible 的組合方式一致。
-function stripChatCompletions(url: string): string {
-  return url.replace(/\/chat\/completions\/?$/, '');
-}
-
-function defaultsFromEnv(): AiConfig {
-  const envUrl = process.env.LOCAL_LLM_API_URL;
-  return {
-    ...PRESETS.local,
-    endpoint: envUrl ? stripChatCompletions(envUrl) : PRESETS.local.endpoint,
-    model_name: process.env.LOCAL_LLM_MODEL || PRESETS.local.model_name,
-  };
-}
-
 function ensureDataDir() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -127,13 +111,14 @@ export function getAiSettings(): AiConfig {
       const raw = fs.readFileSync(SETTINGS_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && parsed.endpoint && parsed.model_name) {
-        return { ...defaultsFromEnv(), ...parsed };
+        return { ...PRESETS.claude, ...parsed };
       }
     }
   } catch {
-    /* 檔案損毀時直接回退到 .env 預設值 */
+    /* 檔案損毀時直接回退到預設值 */
   }
-  return defaultsFromEnv();
+
+  return { ...PRESETS.claude };
 }
 
 export function saveAiSettings(cfg: Partial<AiConfig>): AiConfig {

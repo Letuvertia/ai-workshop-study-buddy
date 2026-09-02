@@ -40,22 +40,33 @@ ai-workshop-study-buddy/
 
 在專案根目錄開啟終端機，依序執行：
 
-#### 1. 檢查並安裝 Node.js（若尚未安裝）
+#### 1. 檢查 Node.js 是否已安裝
 ```bash
-if command -v node &>/dev/null; then
-  echo "✅ Node.js 已安裝: $(node -v)"
-elif command -v brew &>/dev/null; then
-  brew install node
-else
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-  export NVM_DIR="$HOME/.nvm"
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm install --lts
-fi
 node -v
 ```
+若終端機已顯示版本編號（例如 `v24.x.x` 或 `v18+`），代表已安裝完成，**可直接跳至步驟 3**。
 
-#### 2. 安裝後端與前端依賴
+#### 2. 下載並安裝 Node.js（若步驟 1 未安裝）
+> 參考官方指引：[Node.js 官方下載頁面 (https://nodejs.org/zh-tw/download)](https://nodejs.org/zh-tw/download)
+
+```bash
+# 下載並安裝 nvm：
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+
+# 不想重新啟動 shell 時，執行：
+\. "$HOME/.nvm/nvm.sh"
+
+# 下載並安裝 Node.js：
+nvm install 24
+
+# 核對 Node.js 版本：
+node -v # 應會印出 "v24.20.0"。
+
+# 核對 npm 版本：
+npm -v # 應會印出 "11.19.0"。
+```
+
+#### 3. 安裝後端與前端依賴
 ```bash
 # 安裝後端依賴
 cd backend && npm install
@@ -64,7 +75,7 @@ cd backend && npm install
 cd ../frontend && npm install
 ```
 
-#### 3. 啟動系統（需同時開啟兩個終端機分別啟動後端與前端）
+#### 4. 啟動系統（需同時開啟兩個終端機分別啟動後端與前端）
 
 - **終端機 1（啟動後端 API，Port 3000）**：
   ```bash
@@ -78,6 +89,7 @@ cd ../frontend && npm install
   npm run dev
   ```
 
+#### 5. 開啟瀏覽器
 啟動後打開瀏覽器前往：  
 👉 **[http://localhost:5173](http://localhost:5173)**
 
@@ -87,22 +99,31 @@ cd ../frontend && npm install
 
 在專案根目錄開啟 PowerShell，依序執行：
 
-#### 1. 檢查並安裝 Node.js（若尚未安裝）
+#### 1. 檢查 Node.js 是否已安裝
 ```powershell
-if (Get-Command node -ErrorAction SilentlyContinue) {
-    Write-Host "✅ Node.js 已安裝: $(node -v)"
-} elseif (Get-Command winget -ErrorAction SilentlyContinue) {
-    winget install OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-} else {
-    Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.18.0/node-v20.18.0-x64.msi" -OutFile "$env:TEMP\node.msi"
-    Start-Process msiexec.exe -ArgumentList "/i `"$env:TEMP\node.msi`" /quiet /norestart" -Wait
-    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-}
 node -v
 ```
+若終端機已顯示版本編號（例如 `v24.x.x` 或 `v18+`），代表已安裝完成，**可直接跳至步驟 3**。
 
-#### 2. 安裝後端與前端依賴
+#### 2. 下載並安裝 Node.js（若步驟 1 未安裝）
+> 參考官方指引：[Node.js 官方下載頁面 (https://nodejs.org/zh-tw/download)](https://nodejs.org/zh-tw/download)
+
+以系統管理員身分開啟 PowerShell 視窗執行：
+```powershell
+# 下載並安裝 Chocolatey：
+powershell -c "irm https://community.chocolatey.org/install.ps1|iex"
+
+# 下載並安裝 Node.js：
+choco install nodejs-lts --version="24"
+
+# 核對 Node.js 版本：
+node -v # 應會印出 "v24.20.0"。
+
+# 核對 npm 版本：
+npm -v # 應會印出 "11.19.0"。
+```
+
+#### 3. 安裝後端與前端依賴
 ```powershell
 # 安裝後端依賴
 cd backend
@@ -113,7 +134,7 @@ cd ../frontend
 npm install
 ```
 
-#### 3. 啟動系統（需同時開啟兩個 PowerShell 視窗分別啟動後端與前端）
+#### 4. 啟動系統（需同時開啟兩個 PowerShell 視窗分別啟動後端與前端）
 
 - **PowerShell 視窗 1（啟動後端 API，Port 3000）**：
   ```powershell
@@ -127,6 +148,7 @@ npm install
   npm run dev
   ```
 
+#### 5. 開啟瀏覽器
 啟動後打開瀏覽器前往：  
 👉 **[http://localhost:5173](http://localhost:5173)**
 

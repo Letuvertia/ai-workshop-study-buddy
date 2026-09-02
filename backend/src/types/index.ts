@@ -114,12 +114,12 @@ export interface LineState {
 // =============================================
 // AI 模型設定（三按鈕：訂閱制 Claude／外部雲端／自建本地）
 // =============================================
-export type AiKind = 'subscription' | 'external' | 'local';
+export type AiKind = 'claude' | 'openai' | 'google' | 'custom' | 'subscription' | 'external' | 'local';
 
 export interface AiConfig {
   kind: AiKind;
   name: string;
-  endpoint: string;      // 訂閱制固定為 "claude-cli://local"
+  endpoint: string;      // 預設為 "http://localhost:8317/v1"
   model_name: string;
   api_key: string;
   is_local: boolean;
@@ -136,6 +136,14 @@ export interface TestConnectionResult {
   message: string;
   sample: string;
 }
+
+export interface ProviderAuthStatus {
+  logged_in: boolean;
+  email?: string;
+  type?: string;
+}
+
+export type CliProxyAuthMap = Record<'claude' | 'openai' | 'google', ProviderAuthStatus>;
 
 export interface ClaudeAccountStatus {
   ok: boolean;

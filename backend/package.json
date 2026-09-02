@@ -4,10 +4,16 @@
   "description": "個人數位學伴任務規劃系統 - 後端",
   "main": "dist/index.js",
   "scripts": {
+    "predev": "node scripts/cliproxy-manager.js start",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
+    "prestart": "node scripts/cliproxy-manager.js start",
     "start": "node dist/index.js",
-    "check": "node scripts/check.js"
+    "check": "node scripts/check.js",
+    "cliproxy:install": "node scripts/cliproxy-manager.js install",
+    "cliproxy:start": "node scripts/cliproxy-manager.js start",
+    "cliproxy:login": "node scripts/cliproxy-manager.js login",
+    "cliproxy:status": "node scripts/cliproxy-manager.js status"
   },
   "dependencies": {
     "axios": "^1.6.0",

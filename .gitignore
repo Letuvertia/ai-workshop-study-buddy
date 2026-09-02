@@ -1,6 +1,7 @@
 # 依賴與建置產物（可隨時重新產生）
 node_modules/
 dist/
+backend/bin/
 
 # 秘密與執行中資料（絕不進版本庫）
 .env
@@ -8,6 +9,8 @@ dist/
 backend/data/*.db
 backend/data/*.db-shm
 backend/data/*.db-wal
+backend/data/static/
+backend/data/cliproxy-config.yaml
 study-buddy-reminder/data/*.db
 study-buddy-reminder/data/*.db-shm
 study-buddy-reminder/data/*.db-wal

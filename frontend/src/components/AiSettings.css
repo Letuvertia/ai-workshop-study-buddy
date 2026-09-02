@@ -185,16 +185,16 @@
   font-weight: 500;
 }
 .disconnect-btn {
-  background: #fff;
-  color: #ef4444;
-  border-color: #fca5a5;
+  background: #ffffff;
+  color: var(--primary, #4f46e5);
+  border: 1px solid var(--primary, #4f46e5);
   font-weight: 500;
   transition: all 0.15s ease;
 }
 .disconnect-btn:hover {
-  background: #fef2f2;
-  border-color: #ef4444;
-  color: #dc2626;
+  background: #f5f3ff;
+  border-color: var(--primary-dark, #3730a3);
+  color: var(--primary-dark, #3730a3);
 }
 .endpoint-banner {
   display: flex;

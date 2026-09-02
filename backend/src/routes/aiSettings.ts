@@ -241,6 +241,40 @@ router.post('/cliproxy/login', async (req: Request, res: Response) => {
   });
 });
 
+// POST /api/ai/cliproxy/callback — 接收使用者在 Windows/Mac 瀏覽器貼上的跳轉網址，由後端在本地代為發送回呼
+router.post('/cliproxy/callback', async (req: Request, res: Response) => {
+  const { callback_url } = req.body as { callback_url?: string };
+  if (!callback_url || !callback_url.trim()) {
+    return res.status(400).json({ ok: false, error: '請提供回呼網址' });
+  }
+
+  try {
+    const raw = callback_url.trim();
+    const parsed = new URL(raw);
+    const port = parsed.port || '51121';
+    const targetUrl = `http://127.0.0.1:${port}${parsed.pathname}${parsed.search}`;
+
+    const resp = await fetch(targetUrl, { signal: AbortSignal.timeout(6000) });
+    const text = await resp.text();
+
+    // 等待 1 秒讓檔案完成寫入
+    await new Promise((r) => setTimeout(r, 1000));
+    const authStatus = getCliProxyAuthStatus();
+
+    return res.json({
+      ok: true,
+      message: '回呼成功！已完成授權交握。',
+      auth_status: authStatus,
+      raw_response: text.slice(0, 200),
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      ok: false,
+      error: `轉發回呼失敗：${err.message}`,
+    });
+  }
+});
+
 // POST /api/ai/settings — 儲存設定
 router.post('/settings', (req: Request, res: Response) => {
   const body = req.body as Partial<AiConfig>;

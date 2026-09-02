@@ -5,6 +5,7 @@ import {
   testAiConnection,
   getCliProxyStatus,
   cliProxyLogin,
+  sendCliProxyCallback,
   healthCheckAi,
 } from '../api/aiSettings.js';
 import { AiConfig, TestConnectionResult } from '../types/index.js';
@@ -100,6 +101,8 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [callbackInput, setCallbackInput] = useState('');
+  const [submittingCallback, setSubmittingCallback] = useState(false);
   const [result, setResult] = useState<TestConnectionResult | null>(null);
   const pollTimerRef = useRef<any>(null);
 
@@ -235,6 +238,26 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
     }
   };
 
+  // 手動送出跳轉回呼網址（專門解決 WSL2 / 虛擬機端口轉發逾時）
+  const handleManualCallback = async () => {
+    if (!callbackInput.trim()) return;
+    setSubmittingCallback(true);
+    setResult(null);
+    try {
+      const res = await sendCliProxyCallback(callbackInput.trim());
+      if (res.ok) {
+        setConnecting(false);
+        setCallbackInput('');
+        if (res.auth_status) setAuthStatus(res.auth_status);
+        checkEndpointHealth('http://localhost:8317/v1', '', selectedProvider);
+      }
+    } catch (e: any) {
+      setResult({ ok: false, message: `回呼轉發失敗：${e.message || e}`, sample: '' });
+    } finally {
+      setSubmittingCallback(false);
+    }
+  };
+
   const test = async () => {
     if (!form) return;
     setTesting(true);
@@ -329,6 +352,32 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
                 ? '🔄 重新登入 / 切換帳號'
                 : '🔗 連結帳號（前往登入）'}
             </button>
+
+            {connecting && (
+              <div className="callback-helper">
+                <div className="helper-title">💡 若授權完成後跳轉顯示「回應時間過長 (ERR_CONNECTION_TIMED_OUT)」：</div>
+                <div className="helper-desc">
+                  這是 WSL2 / 虛擬網路隔離所致（OAuth 授權已在 Google/Claude 成功完成）。請複製瀏覽器網址列那串 <code>http://localhost:51121/oauth-callback?...</code> 貼在下方：
+                </div>
+                <div className="helper-input-row">
+                  <input
+                    type="text"
+                    placeholder="貼上網址列的完整跳轉網址…"
+                    value={callbackInput}
+                    onChange={(e) => setCallbackInput(e.target.value)}
+                    className="callback-input"
+                  />
+                  <button
+                    type="button"
+                    className="ai-btn primary"
+                    disabled={submittingCallback || !callbackInput.trim()}
+                    onClick={handleManualCallback}
+                  >
+                    {submittingCallback ? '交握中…' : '確認完成'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -235,3 +235,41 @@
   color: var(--gray-600);
   line-height: 1.5;
 }
+
+.callback-helper {
+  margin-top: 10px;
+  padding: 12px;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.helper-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+}
+.helper-desc {
+  font-size: 11px;
+  color: #b45309;
+  line-height: 1.4;
+}
+.helper-desc code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.helper-input-row {
+  display: flex;
+  gap: 6px;
+}
+.callback-input {
+  flex: 1;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  background: #fff;
+}

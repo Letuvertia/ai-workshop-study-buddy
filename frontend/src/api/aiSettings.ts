@@ -49,6 +49,16 @@ export async function cliProxyLogin(provider: string): Promise<{ ok: boolean; au
   });
 }
 
+// 手動送出回呼網址（由後端在本機直接代為轉發交握）
+export async function sendCliProxyCallback(
+  callback_url: string
+): Promise<{ ok: boolean; message: string; auth_status?: any }> {
+  return request('/cliproxy/callback', {
+    method: 'POST',
+    body: JSON.stringify({ callback_url }),
+  });
+}
+
 // 執行 Health Check 並動態取得真實可用模型
 export async function healthCheckAi(
   endpoint: string,

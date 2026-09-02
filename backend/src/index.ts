@@ -1,10 +1,22 @@
+import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
+
+// 若 .env 不存在，自動從 .env.example 複製一份（跨平台防呆）
+const envPath = path.resolve(__dirname, '../.env');
+const envExamplePath = path.resolve(__dirname, '../.env.example');
+if (!fs.existsSync(envPath) && fs.existsSync(envExamplePath)) {
+  try {
+    fs.copyFileSync(envExamplePath, envPath);
+  } catch {
+    /* 忽略錯誤 */
+  }
+}
+
 dotenv.config(); // 一定要在最頂端，才能讀到 .env
 
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
 import './db/index'; // 初始化資料庫（建立資料表）
 import tasksRouter from './routes/tasks';
 import aiSettingsRouter from './routes/aiSettings';

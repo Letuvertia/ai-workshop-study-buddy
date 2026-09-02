@@ -46,21 +46,29 @@ ai-workshop-study-buddy/
 
 在專案根目錄開啟終端機，依序執行：
 
-#### 1. 安裝後端依賴與設定檔
+#### 1. 安裝 Node.js（若尚未安裝）
+- 使用 Homebrew 安裝：
+  ```bash
+  brew install node
+  ```
+  *(若電腦沒有 Homebrew，可至官網下載 macOS 安裝檔 `.pkg`：[https://nodejs.org](https://nodejs.org))*  
+  *安裝完成後輸入 `node -v` 確認版本（需 v18 以上）。*
+
+#### 2. 安裝後端依賴與設定檔
 ```bash
 cd backend
 npm install
 cp -n .env.example .env
 ```
 
-#### 2. 安裝前端依賴並打包
+#### 3. 安裝前端依賴並打包
 ```bash
 cd ../frontend
 npm install
 npm run build
 ```
 
-#### 3. 啟動系統
+#### 4. 啟動系統
 ```bash
 cd ../backend
 npm run dev
@@ -75,7 +83,15 @@ npm run dev
 
 在專案根目錄開啟 PowerShell 或 Terminal，依序執行：
 
-#### 1. 安裝後端依賴與設定檔
+#### 1. 安裝 Node.js（若尚未安裝）
+- 使用 Windows 內建的套件管理員一鍵安裝：
+  ```powershell
+  winget install OpenJS.NodeJS.LTS
+  ```
+  *(若無 winget，可至官網下載 Windows 安裝檔 `.msi`：[https://nodejs.org](https://nodejs.org))*  
+  *安裝完成後請關閉並重新開啟終端機，輸入 `node -v` 確認版本（需 v18 以上）。*
+
+#### 2. 安裝後端依賴與設定檔
 ```powershell
 cd backend
 npm install
@@ -83,14 +99,14 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 *(若使用傳統 Command Prompt / cmd，複製設定檔指令請改用 `if not exist .env copy .env.example .env`)*
 
-#### 2. 安裝前端依賴並打包
+#### 3. 安裝前端依賴並打包
 ```powershell
 cd ../frontend
 npm install
 npm run build
 ```
 
-#### 3. 啟動系統
+#### 4. 啟動系統
 ```powershell
 cd ../backend
 npm run dev

@@ -1,6 +1,5 @@
 # 📚 數位學伴 — 個人任務規劃系統 (Digital Study Buddy)
 
-讓 AI 幫你拆解學習任務、安排具體步驟與到點提醒。  
 本專案專為「**台大社會系AI工作坊**」設計，支援學生於 **Windows、macOS 與 Linux** 環境中自由使用各大訂閱制 AI 方案（Claude / ChatGPT / Google）或本地模型，透過自然對話與 AI 共同擬定、持續修改與跟進各項學習計畫。
 
 ---

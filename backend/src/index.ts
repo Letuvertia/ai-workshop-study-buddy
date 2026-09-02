@@ -14,7 +14,7 @@ import { startScheduler } from './services/scheduler';
 import { getAiSettings } from './services/aiSettings';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // =============================================
 // 簡易請求日誌
@@ -88,7 +88,7 @@ app.get('/health', (_req, res) => {
 // =============================================
 // 啟動伺服器
 // =============================================
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('🚀 數位學伴後端已啟動！');
   console.log(`   網頁（單一伺服器模式）：http://localhost:${PORT}`);

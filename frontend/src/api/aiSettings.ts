@@ -49,6 +49,18 @@ export async function cliProxyLogin(provider: string): Promise<{ ok: boolean; au
   });
 }
 
+// 執行 Health Check 並動態取得真實可用模型
+export async function healthCheckAi(
+  endpoint: string,
+  api_key?: string,
+  provider?: string
+): Promise<{ ok: boolean; models?: string[]; fallback_manual?: boolean; message?: string; error?: string }> {
+  return request('/health_check', {
+    method: 'POST',
+    body: JSON.stringify({ endpoint, api_key, provider }),
+  });
+}
+
 // 儲存設定
 export async function saveAiSettings(cfg: AiConfig): Promise<{ ok: boolean; current: AiConfig }> {
   return request('/settings', { method: 'POST', body: JSON.stringify(cfg) });

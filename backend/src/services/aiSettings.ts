@@ -65,6 +65,14 @@ export const PRESETS: Record<string, AiConfig> = {
     api_key: '',
     is_local: false,
   },
+  custom: {
+    kind: 'custom',
+    name: '自訂模型端點',
+    endpoint: '',
+    model_name: '',
+    api_key: '',
+    is_local: false,
+  },
   // 保留舊版相容
   subscription: {
     kind: 'claude',

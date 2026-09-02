@@ -1,7 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import fs from 'fs';
 import './db/index'; // 初始化資料庫（建立資料表）
 import tasksRouter from './routes/tasks';
 import aiSettingsRouter from './routes/aiSettings';
@@ -38,23 +36,6 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/ai', aiSettingsRouter);
 app.use('/api/schedule', scheduleRouter);
 
-// =============================================
-// 單一伺服器模式：直接供應打包好的前端網頁
-// 前端 fetch 用的是相對路徑 /api，跟後端同一個網址時不需要 CORS，
-// 所以只要跑 backend 一個伺服器、開 http://localhost:3000 就能用。
-// 注意：這裡供應的是 frontend/dist（打包成品）。改了前端程式碼之後，
-// 要在 frontend/ 跑一次 `npm run build` 才會反映到這裡；
-// 開發前端時仍建議照舊開兩個伺服器（vite 會即時更新）。
-// =============================================
-const FRONTEND_DIST = path.resolve(__dirname, '../../frontend/dist');
-if (fs.existsSync(path.join(FRONTEND_DIST, 'index.html'))) {
-  app.use(express.static(FRONTEND_DIST));
-  // SPA fallback：不是 API 的 GET 請求，一律回 index.html（由前端路由接手）
-  app.get(/^\/(?!api|health).*/, (_req, res) => {
-    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
-  });
-}
-
 // 健康檢查（方便確認後端是否在執行）
 app.get('/health', (_req, res) => {
   const ai = getAiSettings();
@@ -73,8 +54,8 @@ app.get('/health', (_req, res) => {
 // =============================================
 app.listen(PORT, () => {
   console.log('');
-  console.log('🚀 數位學伴後端已啟動！');
-  console.log(`   網頁（單一伺服器模式）：http://localhost:${PORT}`);
+  console.log('🚀 數位學伴後端 API 已啟動！');
+  console.log(`   API 伺服器：http://localhost:${PORT}`);
   console.log(`   健康檢查：http://localhost:${PORT}/health`);
   console.log('');
 

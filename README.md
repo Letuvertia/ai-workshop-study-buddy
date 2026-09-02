@@ -124,20 +124,25 @@ npm run dev
 
 ## ⚙️ AI 模型連線設定
 
-打開網頁 [http://localhost:3000](http://localhost:3000) 後，點擊右下角「**⚙️ AI 模型**」按鈕，可自由切換模型來源：
+打開網頁 [http://localhost:3000](http://localhost:3000) 後，點擊右下角「**⚙️ AI 模型**」按鈕，可於面板頂端自由切換模式：
 
-1. **➕ 訂閱制模型（Claude / OpenAI / Google AI）**：
-   - 適合擁有 Claude Pro、ChatGPT Plus 或 Google One AI 訂閱的同學。
-   - 點擊設定面板上的登入授權按鈕，在瀏覽器完成一次性授權即可，**完全不需要另外付費購買 API Key**！
-2. **🖥️ 本機模型（Ollama / LM Studio）**：
-   - 適合注重隱私或離線使用。
-   - 本機安裝並啟動 Ollama（預設 `http://localhost:11434/v1/chat/completions`）即可直接連線。
-3. **🟢 外部雲端 API**：
-   - 若您手邊有 Google Gemini、OpenAI 或 Anthropic 的 API Key，直接貼上即可使用。
-4. **🌐 自訂端點**：
-   - 支援任何相容 OpenAI 格式（`/v1/chat/completions`）的自建服務或校園 API 轉發站。
+1. **🟣 訂閱制 Claude**：
+   - 適合擁有 Claude Pro / Team 訂閱方案的同學。
+   - 點擊「**🔗 連結帳號**」並於瀏覽器完成一次性授權，**完全不需要另外付費購買 API Key**！
+2. **🟢 訂閱制 OpenAI**：
+   - 適合擁有 ChatGPT Plus / Team 訂閱方案的同學。
+   - 點擊「**🔗 連結帳號**」並於瀏覽器完成一次性授權，直接調用訂閱方案額度。
+3. **🔵 訂閱制 Google AI Pro**：
+   - 適合擁有 Google One AI Premium 方案的同學。
+   - 點擊「**🔗 連結帳號**」登入 Google 帳號授權即可使用。
+4. **⚙️ 自訂模型端點（本機 Ollama / LM Studio 或外部 API Key）**：
+   - **本機模型**：注重隱私或離線使用，本機安裝並啟動 Ollama（預設端點 `http://localhost:11434/v1`），API Key 留空即可連線。
+   - **外部雲端 API**：若有 Google Gemini、OpenAI 等服務的 API Key，直接填入相應端點與金鑰。
 
-*設定完成後點擊「連線檢查」，成功後系統會自動由端點動態拉取可用模型清單供下拉選擇！*
+> 💡 **操作流程提示**：
+> 1. 授權登入或填寫端點後，點擊「**🩺 檢查連線 (Health Check)**」。
+> 2. 連線通過後，系統會**自動從端點動態抓取可用模型清單**供下拉選擇。
+> 3. 點擊「**儲存設定**」，新設定即刻生效並自動持久化保存！
 
 ---
 

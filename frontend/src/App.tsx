@@ -192,23 +192,20 @@ export default function App() {
             <span className="logo-sub">AI 任務規劃夥伴</span>
           </div>
 
-          <div className="header-actions">
-            {view === 'planner' ? (
-              <button
-                className="schedule-nav-btn"
-                onClick={() => setView('schedule')}
-              >
-                📅 上傳/檢視學期課表
-              </button>
-            ) : (
-              <button
-                className="schedule-nav-btn"
-                onClick={() => setView('planner')}
-              >
-                💬 返回任務規劃
-              </button>
-            )}
-          </div>
+          <nav className="nav">
+            <button
+              className={`nav-btn ${view === 'planner' ? 'nav-active' : ''}`}
+              onClick={() => setView('planner')}
+            >
+              任務規劃
+            </button>
+            <button
+              className={`nav-btn ${view === 'schedule' ? 'nav-active' : ''}`}
+              onClick={() => setView('schedule')}
+            >
+              課表管理
+            </button>
+          </nav>
         </div>
       </header>
 
@@ -231,7 +228,6 @@ export default function App() {
               onSelectTask={handleSelectTask}
               onNewTask={handleNewTask}
               onDeleteTask={handleDeleteTask}
-              onOpenSchedule={() => setView('schedule')}
             />
 
             {/* 中間雙欄 Workspace */}

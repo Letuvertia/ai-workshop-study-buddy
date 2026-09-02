@@ -8,7 +8,6 @@ interface TaskSidebarProps {
   onSelectTask: (taskId: number) => void;
   onNewTask: () => void;
   onDeleteTask: (taskId: number) => void;
-  onOpenSchedule: () => void;
 }
 
 export default function TaskSidebar({
@@ -17,7 +16,6 @@ export default function TaskSidebar({
   onSelectTask,
   onNewTask,
   onDeleteTask,
-  onOpenSchedule,
 }: TaskSidebarProps) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
@@ -121,14 +119,6 @@ export default function TaskSidebar({
             );
           })
         )}
-      </div>
-
-      {/* 側邊欄底部功能：我的課表 */}
-      <div className="sidebar-footer">
-        <button className="sidebar-tool-btn" onClick={onOpenSchedule}>
-          <span className="tool-icon">📅</span>
-          <span>我的課表管理</span>
-        </button>
       </div>
     </aside>
   );

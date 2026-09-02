@@ -13,18 +13,95 @@ import './AiSettings.css';
 
 type ProviderKey = 'claude' | 'openai' | 'google' | 'custom';
 
-const PROVIDERS: { key: ProviderKey; name: string; emoji: string }[] = [
-  { key: 'claude', name: '訂閱制 Claude', emoji: '🟣' },
-  { key: 'openai', name: '訂閱制 OpenAI', emoji: '🟢' },
-  { key: 'google', name: '訂閱制 Google AI Pro', emoji: '🔵' },
-  { key: 'custom', name: '自訂模型端點', emoji: '⚙️' },
+// 官方品牌向量圖示
+export function ClaudeIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="#D97757" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z" />
+    </svg>
+  );
+}
+
+export function OpenAIIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 2406 2406" fill="#10a37f" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <defs>
+        <path
+          id="openai-petal-ai-settings"
+          d="M1107.3 299.1c-197.999 0-373.9 127.3-435.2 315.3L650 743.5v427.9c0 21.4 11 40.4 29.4 51.4l344.5 198.515V833.3h.1v-27.9L1372.7 604c33.715-19.52 70.44-32.857 108.47-39.828L1447.6 450.3C1361 353.5 1237.1 298.5 1107.3 299.1zm0 117.5-.6.6c79.699 0 156.3 27.5 217.6 78.4-2.5 1.2-7.4 4.3-11 6.1L952.8 709.3c-18.4 10.4-29.4 30-29.4 51.4V1248l-155.1-89.4V755.8c-.1-187.099 151.601-338.9 339-339.2z"
+        />
+      </defs>
+      <use href="#openai-petal-ai-settings" />
+      <use href="#openai-petal-ai-settings" transform="rotate(60 1203 1203)" />
+      <use href="#openai-petal-ai-settings" transform="rotate(120 1203 1203)" />
+      <use href="#openai-petal-ai-settings" transform="rotate(180 1203 1203)" />
+      <use href="#openai-petal-ai-settings" transform="rotate(240 1203 1203)" />
+      <use href="#openai-petal-ai-settings" transform="rotate(300 1203 1203)" />
+    </svg>
+  );
+}
+
+export function GoogleIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <path
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+        fill="#34A853"
+      />
+      <path
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
+
+export function CustomIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#64748b"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+const PROVIDERS: {
+  key: ProviderKey;
+  name: string;
+  renderIcon: (size?: number) => React.ReactNode;
+}[] = [
+  { key: 'claude', name: '訂閱制 Claude', renderIcon: (s = 22) => <ClaudeIcon size={s} /> },
+  { key: 'openai', name: '訂閱制 OpenAI', renderIcon: (s = 22) => <OpenAIIcon size={s} /> },
+  { key: 'google', name: '訂閱制 Google AI Pro', renderIcon: (s = 22) => <GoogleIcon size={s} /> },
+  { key: 'custom', name: '自訂模型端點', renderIcon: (s = 22) => <CustomIcon size={s} /> },
 ];
 
 function Guide({ provider }: { provider: ProviderKey }) {
   if (provider === 'claude') {
     return (
       <div className="provider-guide">
-        <strong>🟣 訂閱制 Claude（透過 CLIProxyAPI）</strong>
+        <strong className="guide-title">
+          <ClaudeIcon size={17} /> 訂閱制 Claude（透過 CLIProxyAPI）
+        </strong>
         <p>吃你現有的 Claude 訂閱方案額度（Pro / Team），免 API Key。</p>
         <p>點選下方「連結帳號」完成授權，打通後將自動載入可用的模型選單。</p>
       </div>
@@ -33,8 +110,10 @@ function Guide({ provider }: { provider: ProviderKey }) {
   if (provider === 'openai') {
     return (
       <div className="provider-guide">
-        <strong>🟢 訂閱制 OpenAI（透過 CLIProxyAPI）</strong>
-        <p>吃你現有的 ChatGPT / OpenAI 訂閱方案額度（Plus / Team），免 API Key。</p>
+        <strong className="guide-title">
+          <OpenAIIcon size={17} /> 訂閱制 OpenAI（透過 CLIProxyAPI）
+        </strong>
+        <p>吃你現有的 OpenAI 訂閱方案額度（Plus / Team），免 API Key。</p>
         <p>點選下方「連結帳號」完成授權，打通後將自動載入可用的模型選單。</p>
       </div>
     );
@@ -42,7 +121,9 @@ function Guide({ provider }: { provider: ProviderKey }) {
   if (provider === 'google') {
     return (
       <div className="provider-guide">
-        <strong>🔵 訂閱制 Google AI Pro（透過 CLIProxyAPI）</strong>
+        <strong className="guide-title">
+          <GoogleIcon size={17} /> 訂閱制 Google AI Pro（透過 CLIProxyAPI）
+        </strong>
         <p>吃 Google One AI Premium 或 Gemini 方案額度，免 API Key。</p>
         <p>點選下方「連結帳號」完成授權，打通後將自動載入可用的模型選單。</p>
       </div>
@@ -50,7 +131,9 @@ function Guide({ provider }: { provider: ProviderKey }) {
   }
   return (
     <div className="provider-guide">
-      <strong>⚙️ 自訂模型端點</strong>
+      <strong className="guide-title">
+        <CustomIcon size={17} /> 自訂模型端點
+      </strong>
       <p>可串接本機 Ollama（如 <code>http://localhost:11434/v1</code>）或任意相容 OpenAI 格式的自建 / 外部服務。</p>
       <p>輸入端點與金鑰後，需先點擊「Health Check」測試連線，通過後方可選擇可用模型。</p>
     </div>
@@ -60,24 +143,46 @@ function Guide({ provider }: { provider: ProviderKey }) {
 export default function AiSettings() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<AiConfig | null>(null);
+  const [authStatus, setAuthStatus] = useState<Record<string, { logged_in: boolean; email?: string }>>({});
+
+  const refreshSettings = () => {
+    getAiSettings()
+      .then((r) => {
+        setCurrent(r.current);
+        if (r.auth_status) setAuthStatus(r.auth_status);
+      })
+      .catch(() => {
+        setCurrent(null);
+        setAuthStatus({});
+      });
+  };
 
   useEffect(() => {
-    getAiSettings()
-      .then((r) => setCurrent(r.current))
-      .catch(() => setCurrent(null));
+    refreshSettings();
   }, []);
+
+  // 判斷各大方案是否有登入或是否為有效自訂設定：
+  const hasAnyAuth = Object.values(authStatus).some((s) => s?.logged_in);
+  const isCustomConfigured = current?.kind === 'custom' && Boolean(current.endpoint && current.model_name);
+  const isCurrentActiveLoggedIn = Boolean(current?.kind && authStatus[current.kind]?.logged_in);
+
+  // 若各大方案皆未登入且未設定自訂端點，或是目前選定的訂閱方案尚未登入，顯示為尚未設定（紅燈）
+  const isConfigured = Boolean(
+    current && (isCustomConfigured || (hasAnyAuth && isCurrentActiveLoggedIn))
+  );
 
   return (
     <>
       <button className="ai-gear" onClick={() => setOpen(true)} title="AI 模型設定">
-        <span className={`ai-dot ${current ? 'on' : ''}`} />
-        ⚙ AI 模型{current ? `：${current.name}` : ''}
+        <span className={`ai-dot ${isConfigured ? 'on' : 'off'}`} />
+        ⚙ AI 模型：{isConfigured && current ? current.name : '尚未設定'}
       </button>
       {open && (
         <Panel
           onClose={(saved) => {
             setOpen(false);
             if (saved) setCurrent(saved);
+            refreshSettings();
           }}
         />
       )}
@@ -309,7 +414,7 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
           <h3>AI 模型設定</h3>
           <button className="ai-x" onClick={() => onClose()}>✕</button>
         </div>
-        <p className="ai-hint">支援各大訂閱制方案直連與自訂端點。模型清單將在連線打通後動態載入。</p>
+        <p className="ai-hint">支援各大訂閱制方案直連與自訂端點。</p>
 
         {/* 頂部四按鈕選項 */}
         <div className="preset-row">
@@ -319,7 +424,7 @@ function Panel({ onClose }: { onClose: (saved?: AiConfig) => void }) {
               className={`preset-btn ${selectedProvider === p.key ? 'on' : ''}`}
               onClick={() => pickProvider(p.key)}
             >
-              <div className="preset-emoji">{p.emoji}</div>
+              <div className="preset-icon">{p.renderIcon(22)}</div>
               <div className="preset-name">{p.name}</div>
             </button>
           ))}

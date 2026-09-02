@@ -264,11 +264,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* 頁腳 */}
-      <footer className="app-footer">
-        <p>數位學伴 · 對話式任務規劃系統</p>
-      </footer>
     </div>
   );
 }

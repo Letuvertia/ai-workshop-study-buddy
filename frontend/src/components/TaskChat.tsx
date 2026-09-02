@@ -25,9 +25,34 @@ export default function TaskChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 自動調整輸入框高度（預設 2 行，超過 2 行自動變大，最多 15 行才出現 scroll）
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const twoLinesHeight = 62;
+    const fifteenLinesHeight = 335;
+    const scrollHeight = el.scrollHeight;
+
+    if (scrollHeight <= twoLinesHeight) {
+      el.style.height = `${twoLinesHeight}px`;
+      el.style.overflowY = 'hidden';
+    } else if (scrollHeight < fifteenLinesHeight) {
+      el.style.height = `${scrollHeight}px`;
+      el.style.overflowY = 'hidden';
+    } else {
+      el.style.height = `${fifteenLinesHeight}px`;
+      el.style.overflowY = 'auto';
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [input]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -35,9 +60,6 @@ export default function TaskChat({
 
     const msg = input.trim();
     setInput('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
     await onSendMessage(msg);
   };
 
@@ -48,10 +70,8 @@ export default function TaskChat({
     }
   };
 
-  const handleInputResize = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    e.target.style.height = 'auto';
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
   };
 
   const isNewSession = taskId === null && messages.length === 0;
@@ -180,10 +200,10 @@ export default function TaskChat({
         <textarea
           ref={textareaRef}
           value={input}
-          onChange={handleInputResize}
+          onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           placeholder="告訴 AI 你想完成什麼，或輸入修改指令…（Enter 送出，Shift+Enter 換行）"
-          rows={1}
+          rows={2}
           disabled={loading}
           className="chat-textarea"
         />

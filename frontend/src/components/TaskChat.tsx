@@ -231,7 +231,7 @@ export default function TaskChat({
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="告訴 AI 你想完成什麼，或輸入修改指令…（Enter 送出，Shift+Enter 換行）"
+          placeholder="描述你想完成的任務（Enter送出，Shift+Enter 換行）"
           rows={2}
           disabled={loading}
           className="chat-textarea"

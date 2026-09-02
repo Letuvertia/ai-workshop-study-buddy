@@ -88,7 +88,7 @@ app.get('/health', (_req, res) => {
 // =============================================
 // 啟動伺服器
 // =============================================
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log('');
   console.log('🚀 數位學伴後端已啟動！');
   console.log(`   網頁（單一伺服器模式）：http://localhost:${PORT}`);

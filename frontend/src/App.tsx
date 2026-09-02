@@ -9,7 +9,6 @@ import {
   getTask,
   getTaskMessages,
   sendTaskChat,
-  summarizeTask,
   updateStep,
   updateReminder,
   deleteTask,
@@ -176,24 +175,6 @@ export default function App() {
     }
   };
 
-  // Crush 架構：執行滾動摘要壓縮 Context
-  const handleSummarize = async () => {
-    if (!selectedTaskId || chatLoading) return;
-    setChatLoading(true);
-    setError('');
-    try {
-      await summarizeTask(selectedTaskId);
-      const msgRes = await getTaskMessages(selectedTaskId);
-      setMessages(msgRes.messages || []);
-      const updated = await getTask(selectedTaskId);
-      setTaskDetail(updated);
-    } catch (e: any) {
-      setError(e.message || '執行滾動摘要失敗');
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
   return (
     <div className="app">
       <AiSettings />
@@ -211,36 +192,39 @@ export default function App() {
             <span className="logo-sub">AI 任務規劃夥伴</span>
           </div>
 
-          <nav className="nav">
-            <button
-              className={`nav-btn ${view === 'planner' ? 'nav-active' : ''}`}
-              onClick={() => setView('planner')}
-            >
-              💬 任務規劃對話
-            </button>
-            <button
-              className={`nav-btn ${view === 'schedule' ? 'nav-active' : ''}`}
-              onClick={() => setView('schedule')}
-            >
-              📅 我的課表
-            </button>
-          </nav>
+          <div className="header-actions">
+            {view === 'planner' ? (
+              <button
+                className="schedule-nav-btn"
+                onClick={() => setView('schedule')}
+              >
+                📅 上傳/檢視學期課表
+              </button>
+            ) : (
+              <button
+                className="schedule-nav-btn"
+                onClick={() => setView('planner')}
+              >
+                💬 返回任務規劃
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* 主要內容區 */}
-      <main className="app-main">
-        {/* 錯誤橫幅 */}
+      {/* 主要內容區塊 */}
+      <main className="main-content">
         {error && (
           <div className="error-banner">
-            <span>❌ {error}</span>
+            <span>⚠️ {error}</span>
             <button onClick={() => setError('')}>✕</button>
           </div>
         )}
 
+        {/* 任務對話與步驟規劃工作區 */}
         {view === 'planner' && (
           <div className="planner-layout">
-            {/* 左側 Sidebar（非透明，左側有留白） */}
+            {/* 左側 Sidebar */}
             <TaskSidebar
               tasks={tasks}
               selectedTaskId={selectedTaskId}
@@ -258,7 +242,6 @@ export default function App() {
                 taskName={taskDetail?.task?.name}
                 messages={messages}
                 onSendMessage={handleSendMessage}
-                onSummarize={handleSummarize}
                 loading={chatLoading}
               />
 

@@ -854,6 +854,33 @@ export async function handleTaskChat(
     throw new Error('無法取得更新後的任務資訊');
   }
 
+  // 8. Crush 後台自動滾動摘要機制 (crush/internal/agent/agent.go:1037-1056, 1192-1207)
+  // 在每一輪對話完成、Token 計數更新後，立即檢測剩餘 Token 是否達到 Context Window 門檻。
+  // 若達到門檻，完全在後台靜默自動執行結構化滾動摘要（summary.md 規格），無需任何人工點擊！
+  const cw = getModelContextWindow(cfg.model_name);
+  const totalTokens =
+    (updatedDetail.task.prompt_tokens || 0) + (updatedDetail.task.completion_tokens || 0);
+  const remaining = cw - totalTokens;
+  const threshold =
+    cw > LARGE_CONTEXT_WINDOW_THRESHOLD
+      ? LARGE_CONTEXT_WINDOW_BUFFER
+      : Math.floor(cw * SMALL_CONTEXT_WINDOW_RATIO);
+
+  const totalMsgs = db
+    .prepare('SELECT COUNT(*) as c FROM task_messages WHERE task_id = ?')
+    .get(finalTaskId) as { c: number };
+
+  if (remaining <= threshold && totalMsgs.c >= 4) {
+    console.log(
+      `⚡ [Crush Context] 後台自動滾動摘要觸發！總 Token: ${totalTokens}, 剩餘 Token: ${remaining} <= 門檻 ${threshold}`
+    );
+    try {
+      await executeSummarize(finalTaskId);
+    } catch (err) {
+      console.error('後台自動滾動摘要失敗：', err);
+    }
+  }
+
   return {
     task_id: finalTaskId,
     reply: cleanReply,

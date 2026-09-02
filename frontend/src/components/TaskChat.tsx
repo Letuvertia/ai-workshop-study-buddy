@@ -7,7 +7,6 @@ interface TaskChatProps {
   taskName?: string;
   messages: TaskMessage[];
   onSendMessage: (text: string) => Promise<void>;
-  onSummarize?: () => Promise<void>;
   loading: boolean;
 }
 
@@ -16,7 +15,6 @@ export default function TaskChat({
   taskName,
   messages,
   onSendMessage,
-  onSummarize,
   loading,
 }: TaskChatProps) {
   const [input, setInput] = useState('');
@@ -106,19 +104,6 @@ export default function TaskChat({
             </span>
           </div>
         </div>
-
-        {/* Crush 結構化滾動摘要手動觸發按鈕 */}
-        {taskId && messages.length >= 3 && onSummarize && (
-          <button
-            type="button"
-            className="crush-summarize-btn"
-            onClick={onSummarize}
-            disabled={loading}
-            title="採用 Crush 規格進行結構化記憶滾動摘要，釋放 Context Window 空間"
-          >
-            ⚡ 滾動摘要 (Crush)
-          </button>
-        )}
       </div>
 
       {/* 訊息紀錄區塊 */}

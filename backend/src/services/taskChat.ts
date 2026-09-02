@@ -525,8 +525,10 @@ function executeAction(actionObj: any, currentTaskId: number | null): number | n
   if (actionType === 'update_task') {
     const fields: string[] = [];
     const values: unknown[] = [];
-    if (actionObj.name) { fields.push('name = ?'); values.push(actionObj.name); }
-    if (actionObj.goal_description) { fields.push('goal_description = ?'); values.push(actionObj.goal_description); }
+    const taskName = actionObj.name || actionObj.title;
+    if (taskName) { fields.push('name = ?'); values.push(taskName); }
+    const goal = actionObj.goal_description || actionObj.goal;
+    if (goal) { fields.push('goal_description = ?'); values.push(goal); }
     if (actionObj.deadline) { fields.push('deadline = ?'); values.push(actionObj.deadline); }
     if (actionObj.available_time) { fields.push('available_time = ?'); values.push(actionObj.available_time); }
     if (actionObj.task_type) { fields.push('task_type = ?'); values.push(actionObj.task_type); }
@@ -756,28 +758,36 @@ export async function handleTaskChat(
 
   const rawReply = responseResult.content;
 
-  // 6. 解析 Action 區塊（支援 ```action ... ``` 或 ```json ... ```）
-  let cleanReply = rawReply;
-  let actionDataStr: string | null = null;
+  // 6. 解析 Action 區塊（支援多個 ```action ... ``` 或 ```json ... ``` 區塊）
   let actionsToExecute: any[] = [];
+  const actionDataList: string[] = [];
 
-  const actionMatch = rawReply.match(/```(?:action|json)\s*([\s\S]*?)\s*```/);
-  if (actionMatch) {
-    actionDataStr = actionMatch[1].trim();
+  const actionBlockRegex = /```(?:action|json)\s*([\s\S]*?)\s*```/g;
+  let match: RegExpExecArray | null;
+  while ((match = actionBlockRegex.exec(rawReply)) !== null) {
+    const rawBlock = match[1].trim();
+    actionDataList.push(rawBlock);
     try {
-      const parsed = JSON.parse(actionDataStr);
+      const parsed = JSON.parse(rawBlock);
       if (Array.isArray(parsed)) {
-        actionsToExecute = parsed;
+        actionsToExecute.push(...parsed);
       } else if (Array.isArray(parsed.actions)) {
-        actionsToExecute = parsed.actions;
+        actionsToExecute.push(...parsed.actions);
       } else {
-        actionsToExecute = [parsed];
+        actionsToExecute.push(parsed);
       }
-      cleanReply = rawReply.replace(actionMatch[0], '').trim();
     } catch (e) {
       console.warn('解析 action JSON 失敗：', e);
     }
   }
+
+  // 將所有 action / json 區塊從對話回覆文字中徹底移除（含未閉合的尾部區塊）
+  let cleanReply = rawReply
+    .replace(/```(?:action|json)\s*[\s\S]*?```/g, '')
+    .replace(/```(?:action|json)[\s\S]*$/gi, '')
+    .trim();
+
+  const actionDataStr = actionDataList.length > 0 ? JSON.stringify(actionsToExecute) : null;
 
   if (!cleanReply) {
     cleanReply = '好的，我已經為你更新了任務計畫！';
